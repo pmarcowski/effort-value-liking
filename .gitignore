@@ -1,0 +1,44 @@
+# History files
+.Rhistory
+.Rapp.history
+
+# Session Data files
+.RData
+.RDataTmp
+
+# User-specific files
+.Ruserdata
+
+# Output files from R CMD build
+/*.tar.gz
+
+# Output files from R CMD check
+/*.Rcheck/
+
+# RStudio files
+.Rproj.user/
+
+# Produced vignettes
+*.html
+*.pdf
+
+# Output
+output/**
+!output/.gitkeep
+
+# Auth tokens
+.httr-oauth
+
+# knitr and R markdown cache
+*_cache/
+cache/
+
+# R Environment Variables
+.Renviron
+
+# RStudio Connect folder
+rsconnect/
+
+# OS junk
+.DS_Store
+Thumbs.db
