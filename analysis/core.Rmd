@@ -1,0 +1,797 @@
+---
+title: "Analysis for Effort and Liking Study: Core Experiments"
+output:
+  html_document:
+    theme: united
+    toc: true
+    number_sections: false
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(afex)
+library(effects)
+library(emmeans)
+library(ggpubr)
+library(cowplot)
+
+knitr::opts_chunk$set(fig.width = 10)
+emm_options(lmerTest.limit = 2e+5, pbkrtest.limit = 2e+5)
+
+# Prepare data for each experiment
+# source(here:here("R/prepare_data.R")) # Optional: prepares to `data/prepared/`
+```
+
+# Experiment 1: Task Test (Lab)
+
+## Data Import
+
+```{r supplementary-task-test-import-data}
+# Load Task Test (lab) data and set factor levels
+supp_task_data <-
+  read_csv("../data/prepared/supplementary/tasktest.csv") %>%
+  mutate(
+    across(c(subjID, sex), as.factor),
+    effort_level = factor(effort_level, levels = c("Low", "Medium", "High")),
+    component = factor(component, levels = c("Frustration", "Pleasure", "Effort", "Physical", "Mental", "Temporal", "Performance")),
+    comp_type = factor(comp_type, levels = c("Demand", "Affective"))
+  )
+```
+
+## Demographics
+
+```{r supplementary-task-test-demographics}
+# Summarize age and sex demographics
+supp_task_data %>%
+  select(subjID, age) %>%
+  group_by(subjID) %>%
+  slice(1) %>%
+  ungroup() %>%
+  get_summary_stats(age)
+
+supp_task_data %>%
+  select(subjID, sex, age) %>%
+  group_by(subjID) %>%
+  slice(1) %>%
+  ungroup() %>%
+  group_by(sex) %>%
+  get_summary_stats(age)
+
+supp_task_data %>%
+  select(subjID, sex, age) %>%
+  summarize(
+    n_male = n_distinct(subjID[sex == "Male"]),
+    n_female = n_distinct(subjID[sex == "Female"])
+  )
+```
+
+## Task Load Components
+
+```{r suppT-tasktest-taskload-anova}
+# Fit mixed model for rating by effort × component
+aov_taskload <- mixed(
+  rating ~ effort_level * component + (1 | subjID),
+  data = supp_task_data,
+  set_data_arg = TRUE,
+  method = "S",
+  control = lmerControl(optCtrl = list(maxfun = 2e+5))
+)
+
+nice(aov_taskload)
+Effect("effort_level", aov_taskload$full_model)
+Effect("component", aov_taskload$full_model)
+```
+
+### Post-hoc: Task Load
+
+```{r suppT-tasktest-taskload-emmeans}
+# Estimated marginal means and pairwise contrasts
+em1_taskload <- emmeans(
+  aov_taskload,
+  pairwise ~ effort_level | component,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+em1_taskload
+em1_taskload_means <- as.data.frame(em1_taskload$emmeans)
+em1_taskload_contrasts <- as.data.frame(em1_taskload$contrasts)
+
+em2_taskload <- emmeans(
+  aov_taskload,
+  pairwise ~ component | effort_level,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+em2_taskload
+em2_taskload_means <- as.data.frame(em2_taskload$emmeans)
+em2_taskload_contrasts <- as.data.frame(em2_taskload$contrasts)
+```
+
+### Plot: Task Load Ratings
+
+```{r suppT-tasktest-taskload-plot}
+aov_taskload_plot <- supp_task_data %>%
+  ggplot(aes(x = effort_level, y = rating, group = component)) +
+  stat_summary(geom = "point", fun = mean) +
+  stat_summary(geom = "line", fun = mean, mapping = aes(linetype = component)) +
+  stat_summary(geom = "errorbar", fun.data = mean_cl_normal, width = 0.2) +
+  labs(
+    title = "Taskload by Effort Level",
+    subtitle = "Laboratory Version",
+    x = "Effort Level",
+    y = "Mean Rating"
+  ) +
+  scale_x_discrete(labels = c("Low", "Medium", "High")) +
+  coord_cartesian(ylim = c(1, 5)) +
+  theme_cowplot() +
+  facet_wrap(~component, scales = "free_x", ncol = 3) +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+aov_taskload_plot
+ggsave("../output/supplementary_taskload_plot.pdf", plot = aov_taskload_plot, height = 190, width = 190, units = "mm")
+```
+
+# Experiment 2: Value Judgements (Core 1)
+
+## Data Import and Preprocessing
+
+```{r core1-import-main-data}
+# Load Core 1 data and set factors/numeric fields
+core1_data <-
+  read_csv("../data/prepared/core/core1.csv") %>%
+  mutate(
+    subjID = as.factor(subjID),
+    sex = as.factor(sex),
+    condition = factor(condition, levels = c("Liking", "Value", "Wanting")),
+    effort_level = factor(effort_level, levels = c("Low", "Medium", "High")),
+    across(c(rel_liking, rel_value, rel_wanting), factor, levels = c("Less", "Neither", "More")),
+    across(-where(is.factor), \(x) as.numeric(x))
+  )
+```
+
+```{r core1-lagged-effort}
+# Create lagged effort transition factor within subject
+core1_lagged <-
+  core1_data %>%
+  group_by(subjID) %>%
+  mutate(group_lag = as.factor(paste0(effort_level, "-", lead(effort_level)))) %>%
+  ungroup()
+```
+
+Extract first row per subject for TLX summary.
+
+```{r core1-tlx-summary}
+core1_tlx_summary <-
+  core1_data %>%
+  group_by(subjID) %>%
+  slice(1) %>%
+  ungroup()
+
+core1_tlx_summary
+```
+
+## Demographics
+
+```{r core1-demographics-summary}
+core1_demographics_summary <- core1_data %>%
+  group_by(subjID) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(subjID),
+    mean_age = mean(age),
+    sd_age = sd(age),
+    n_male = n_distinct(subjID[sex == "Male"]),
+    n_female = n_distinct(subjID[sex == "Female"]),
+    n_other = n_distinct(subjID[sex == "Other"])
+  )
+
+core1_demographics_summary
+```
+
+## Main Analyses
+
+### Mixed ANOVA: Condition x Effort Level
+
+```{r core1-anova-rating}
+# Fit mixed model for rating by condition × effort
+core1_aov_rating <- mixed(
+  rating ~ condition * effort_level + (1 | subjID),
+  data = core1_data,
+  method = "S",
+  control = lmerControl(optCtrl = list(maxfun = 1e6))
+)
+
+nice(core1_aov_rating)
+```
+
+### Post-hoc: Effort Level by Condition
+
+```{r core1-emmeans-effort-by-condition}
+# Estimated marginal means and pairwise contrasts by condition
+core1_em1 <- emmeans(
+  core1_aov_rating,
+  pairwise ~ effort_level | condition,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+core1_em1
+core1_em1_means <- as.data.frame(core1_em1$emmeans)
+core1_em1_contrasts <- as.data.frame(core1_em1$contrasts)
+```
+
+### Post-hoc: Condition by Effort Level
+
+```{r core1-emmeans-condition-by-effort}
+# Estimated marginal means and pairwise contrasts by effort
+core1_em2 <- emmeans(
+  core1_aov_rating,
+  pairwise ~ condition | effort_level,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+core1_em2
+core1_em2_means <- as.data.frame(core1_em2$emmeans)
+core1_em2_contrasts <- as.data.frame(core1_em2$contrasts)
+```
+
+### Plot: Rating Comparisons
+
+```{r core1-rating-plot}
+# Plot EMMs for Liking/Wanting/Price across effort
+core1_aov_rating_plot <- 
+  core1_em1_means %>% 
+  mutate(
+    condition = recode(condition, "Value" = "Price"),
+    condition = fct_relevel(condition, "Liking", "Wanting")
+    ) %>%
+  ggplot(
+  aes(x = effort_level, y = emmean, group = condition)
+  ) +
+  geom_line(
+    aes(linetype = condition),
+    position = position_dodge(width = 0.5)
+  ) +
+  geom_point() +
+  geom_errorbar(
+    aes(ymin = lower.CL, ymax = upper.CL),
+    width = 0.2,
+    position = position_dodge(width = 0.5)
+  ) +
+  scale_y_continuous(
+    sec.axis = sec_axis(~., labels = function(x) paste0("$", x, "00"))
+  ) +
+  facet_wrap(~condition) +
+  labs(title = "Liking, Wanting, and Price", x = "Effort Level", y = "Mean Rating") +
+  coord_cartesian(ylim = c(1, 5)) +
+  theme_cowplot() +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+core1_aov_rating_plot
+ggsave("../output/core1_rating_plot.tiff", plot = core1_aov_rating_plot, height = 90, width = 190, units = "mm")
+```
+
+### Lagged Effort Analysis
+
+```{r core1-anova-rating-lag}
+# Mixed model with lagged effort transitions
+core1_aov_rating_lag <- mixed(
+  rating ~ condition * group_lag + (1 | subjID),
+  data = core1_lagged,
+  method = "S",
+  control = lmerControl(optCtrl = list(maxfun = 1e6))
+)
+
+nice(core1_aov_rating_lag)
+```
+
+### Moderation by Task Load
+
+```{r core1-moderation-model}
+# Moderation model with rescaled TLX and effort
+rating_mod <- core1_data %>%
+  select(everything(), effort = effort_trials, moder = adjusted_overall) %>%
+  mutate(across(c(effort, moder), scales::rescale, c(0, 1))) %>%
+  lmer(rating ~ effort * moder * condition + (1 | subjID), data = .)
+
+anova(rating_mod)
+
+rating_mod_list <- list(
+  moder = c(
+    round(mean(scales::rescale(core1_tlx_summary$adjusted_overall, c(0, 1))) - sd(scales::rescale(core1_tlx_summary$adjusted_overall, c(0, 1))), 2),
+    round(mean(scales::rescale(core1_tlx_summary$adjusted_overall, c(0, 1))), 2),
+    round(mean(scales::rescale(core1_tlx_summary$adjusted_overall, c(0, 1))) + sd(scales::rescale(core1_tlx_summary$adjusted_overall, c(0, 1))), 2)
+  )
+)
+```
+
+#### Plot: Moderation Effects
+
+```{r core1-moderation-plot}
+rating_mod_plot <- interactions::interact_plot(
+  rating_mod,
+  pred = "effort",
+  modx = "moder", mod2 = "condition",
+  legend.main = "NASA-TLX",
+  line.thickness = 0.75,
+  modx.labels = c("-1 SD", "Mean", "+1 SD"),
+  mod2.labels = c("Liking" = "Liking", "Value" = "Price", "Wanting" = "Wanting"),
+  main.title = "Moderation of Ratings by Task Load"
+  ) +
+  scale_color_gradient(low = "black", high = "black", guide = "none") +
+  labs(x = "Performed Steps (Proportion of Maximum)", y = "Mean Rating") +
+  coord_cartesian(ylim = c(1, 5)) +
+  theme_cowplot() +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5),
+    panel.spacing = unit(1.25, "lines"),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+rating_mod_plot
+ggsave("../output/core1_rating_moderation_plot.tiff", plot = rating_mod_plot, height = 90, width = 190, units = "mm")
+```
+
+## Belief Analyses
+
+### Belief Proportions
+
+```{r core1-beliefs-prop}
+# Compute proportions of belief categories
+beliefs_prop <-
+  core1_data %>%
+  select(subjID, contains("rel_")) %>%
+  group_by(subjID) %>%
+  slice(1) %>%
+  ungroup() %>%
+  rename("Liking" = "rel_liking", "Price" = "rel_value", "Wanting" = "rel_wanting") %>%
+  gather(belief, type, -subjID) %>%
+  janitor::tabyl(belief, type) %>%
+  janitor::adorn_totals("col") %>%
+  mutate(across(c(2, 3, 4), ~ round((.x / Total), 3)))
+
+beliefs_prop
+```
+
+#### Plot: Belief Proportions
+
+```{r core1-beliefs-prop-plot}
+beliefs_prop_plot <-
+  beliefs_prop %>%
+  gather(type, prop, -belief, -Total) %>%
+  mutate(type = factor(type, levels = c("Less", "Neither", "More"))) %>%
+  ggplot(aes(x = type, y = prop, fill = type)) +
+  geom_col(color = "black") +
+  theme_cowplot() +
+  labs(title = "Effort-Price Relationship Beliefs", x = "Belief", y = "Proportion") +
+  guides(fill = guide_legend("Belief")) +
+  coord_cartesian(ylim = c(0, 1)) +
+  scale_fill_grey() +
+  facet_wrap(~belief) +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+beliefs_prop_plot
+ggsave("../output/beliefs_plot.tiff", plot = beliefs_prop_plot, height = 90, width = 190, units = "mm")
+```
+
+### Ratings by Beliefs
+
+```{r core1-beliefs-anova}
+# Mixed model for Liking ratings by effort × belief
+beliefs_aov <- mixed(
+  rating ~ effort_level * rel_liking + (1 | subjID),
+  data = core1_data[core1_data$condition == "Liking", ],
+  method = "S",
+  control = lmerControl(optCtrl = list(maxfun = 1e6))
+)
+
+nice(beliefs_aov)
+```
+
+#### Post-hoc: Beliefs
+
+```{r core1-beliefs-emmeans}
+# EMMs and contrasts for beliefs model
+beliefs_em <- emmeans(beliefs_aov, pairwise ~ effort_level * rel_liking, infer = TRUE, adjust = "mvt")
+
+beliefs_em
+beliefs_means <- as.data.frame(beliefs_em$emmeans)
+beliefs_contrasts <- as.data.frame(beliefs_em$contrasts)
+```
+
+#### Plot: Ratings by Beliefs
+
+```{r core1-beliefs-plot}
+# Plot Liking ratings by belief and effort
+beliefs_aov_plot <- core1_data %>%
+  filter(condition %in% "Liking") %>%
+  mutate(
+    subjID = as.character(subjID),
+    subjID = as.factor(subjID),
+    condition = as.factor(condition)
+  ) %>%
+  ggplot(aes(x = rel_liking, y = rating)) +
+  stat_summary(
+    geom = "point", fun = "mean",
+    position = position_dodge(width = 0.25)
+  ) +
+  stat_summary(
+    geom = "errorbar", fun.data = "mean_cl_normal",
+    width = 0.1, position = position_dodge(width = 0.25)
+  ) +
+  stat_summary(
+    aes(group = effort_level, linetype = effort_level),
+    geom = "line", fun = mean,
+    position = position_dodge(width = 0.25)
+  ) +
+  labs(
+    title = "Effort-Liking Beliefs and Ratings of Liking",
+    x = "Liking Belief", y = "Mean Rating"
+  ) +
+  guides(linetype = "none") +
+  coord_cartesian(ylim = c(1, 5)) +
+  theme_cowplot() +
+  facet_wrap(
+    ~effort_level, 
+    labeller = labeller(effort_level = \(x) paste0("Effort: ", x))
+    ) +
+  theme(
+    legend.position = "bottom",
+    legend.justification = c(0.5, 0.5),
+    plot.title = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+beliefs_aov_plot
+ggsave("../output/beliefs_rating_plot.tiff", plot = beliefs_aov_plot, height = 90, width = 190, units = "mm")
+```
+
+# Experiment 6: Foraging Experience (Core 2)
+
+## Data Import
+
+```{r core2-data-load}
+# Load Core 2 data and set factor levels
+core2_data <-
+  read_csv("../data/prepared/core/core2.csv") %>%
+  mutate(
+    effort_level = factor(effort_level, levels = c("Low", "Medium", "High")),
+    type = factor(type, levels = c("Liking", "Value")),
+    experience = factor(experience, levels = c("No Experience", "Experience"))
+  )
+```
+
+## Demographics
+
+```{r core2-demographics-summary}
+core1_demographics_summary <- core2_data %>%
+  group_by(subjID) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(subjID),
+    # mean_age = mean(age),
+    # sd_age = sd(age),
+    # n_male = n_distinct(id[sew == "Male"]),
+    # n_female = n_distinct(id[gender == "Female"]),
+    # n_other = n_distinct(id[gender == "Other"])
+  )
+
+core1_demographics_summary
+```
+
+## Main Analyses
+
+### Mixed ANOVA: Type x Experience x Effort Level
+
+```{r core2-anova-rating}
+# Fit mixed model for value by type × experience × effort
+core2_aov_rating <- mixed(
+  value ~ type * experience * effort_level + (1 | subjID),
+  data = core2_data,
+  method = "S",
+  control = lmerControl(optCtrl = list(maxfun = 1e+6))
+)
+
+nice(core2_aov_rating)
+```
+
+### Post-hoc Analyses
+
+```{r core2-emmeans-effort-by-type}
+core2_em1_rating <- emmeans(
+  core2_aov_rating,
+  pairwise ~ effort_level | type,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+core2_em1_rating
+core2_em1_means <- as.data.frame(core2_em1_rating$means)
+core2_em1_contrasts <- as.data.frame(core2_em1_rating$contrasts)
+```
+
+```{r core2-emmeans-type-by-effort}
+core2_em2_rating <- emmeans(
+  core2_aov_rating,
+  pairwise ~ type | effort_level,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+core2_em2_rating
+core2_em2_means <- as.data.frame(core2_em2_rating$emmeans)
+core2_em2_contrasts <- as.data.frame(core2_em2_rating$contrasts)
+```
+
+```{r core2-emmeans-experience-by-type}
+core2_em3_rating <- emmeans(
+  core2_aov_rating,
+  pairwise ~ experience | type,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+core2_em3_rating
+core2_em3_means <- as.data.frame(core2_em3_rating$emmeans)
+core2_em3_contrasts <- as.data.frame(core2_em3_rating$contrasts)
+```
+
+```{r core2-emmeans-experience-by-effort}
+core2_em4_rating <- emmeans(
+  core2_aov_rating,
+  pairwise ~ experience | effort_level,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+core2_em4_rating
+core2_em4_means <- as.data.frame(core2_em4_rating$emmeans)
+core2_em4_contrasts <- as.data.frame(core2_em4_rating$contrasts)
+```
+
+```{r core2-emmeans-experience-by-effort-type}
+core2_em5_rating <- emmeans(
+  core2_aov_rating,
+  pairwise ~ experience | effort_level | type,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+core2_em5_rating
+core2_em5_means <- as.data.frame(core2_em5_rating$emmeans)
+core2_em5_contrasts <- as.data.frame(core2_em5_rating$contrasts)
+```
+
+```{r core2-emmeans-effort-by-type-experience}
+core2_em6_rating <- emmeans(
+  core2_aov_rating,
+  pairwise ~ effort_level | type | experience,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+core2_em6_rating
+core2_em6_means <- as.data.frame(core2_em6_rating$emmeans)
+core2_em6_contrasts <- as.data.frame(core2_em6_rating$contrasts)
+```
+
+### Plot: Core 2 Comparisons
+
+```{r core2-rating-plot}
+# Plot EMMs by foraging experience across effort levels
+core2_aov_rating_plot <- ggplot(
+  core2_em6_means %>% mutate(type = recode(type, "Value" = "Price"), experience = recode(experience, "No Experience" = "No", "Experience" = "Yes")),
+  aes(x = effort_level, y = emmean, group = experience)
+) +
+  geom_line(
+    aes(linetype = experience),
+    position = position_dodge(width = 0.5)
+  ) +
+  geom_point(
+    position = position_dodge(width = 0.5)
+  ) +
+  geom_errorbar(
+    aes(ymin = lower.CL, ymax = upper.CL),
+    width = 0.2,
+    position = position_dodge(width = 0.5)
+  ) +
+  scale_y_continuous(
+    sec.axis = sec_axis(~., labels = function(x) paste0("$", x, "00"))
+  ) +
+  facet_wrap(~type) +
+  labs(
+    title = "Liking, Price, and Foraging Experience",
+    x = "Effort Level", y = "Mean Rating",
+    linetype = "Foraging Experience"
+  ) +
+  coord_cartesian(ylim = c(1, 5)) +
+  theme_cowplot() +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "bottom",
+    legend.justification = c(0.5, 0.5),
+    plot.title = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+core2_aov_rating_plot
+ggsave("../output/core2_rating_plot.tiff", plot = core2_aov_rating_plot, height = 90, width = 190, units = "mm")
+```
+
+## Strategy Analysis
+
+### Primary Label
+
+```{r strategy-analysis-categories-primary}
+core2_strategies <- 
+  read_csv("../data/prepared/core/core2_coded_with_categories.csv")
+
+N_total <- nrow(core2_strategies)
+
+primary_long <- core2_strategies %>%
+  transmute(
+    q1 = strategyq1_primary_category,
+    q2 = strategyq2_primary_category
+  ) %>%
+  pivot_longer(everything(), names_to = "question", values_to = "category") %>%
+  mutate(
+    question = recode(question, q1 = "Pre-Task Strategy", q2 = "Valuation Strategy"),
+    category = str_trim(category)
+  ) %>%
+  filter(!is.na(category), category != "")
+
+cat_order_primary <- primary_long %>%
+  count(category, sort = TRUE) %>%
+  pull(category)
+
+primary_counts <- primary_long %>%
+  mutate(category = factor(category, levels = rev(cat_order_primary))) %>%
+  count(question, category, name = "n") %>%
+  group_by(question) %>%
+  mutate(pct_in_question = n / sum(n)) %>%
+  ungroup() %>%
+  mutate(pct_total = n / N_total)
+
+primary_plot <- primary_counts %>%
+  ggplot(aes(x = n, y = category, fill = question)) +
+  geom_col(position = position_dodge(width = 0.85),
+           width = 0.8, color = "black", linewidth = 0.25) +
+  geom_text(
+    aes(label = paste0(n, " (", scales::percent(pct_total, accuracy = 0.01), ")"),
+        group = question),
+    position = position_dodge(width = 0.85),
+    hjust = -0.15, size = 3.2
+  ) +
+  scale_fill_grey(start = 0.35, end = 0.75, guide = guide_legend(title = NULL)) +
+  labs(
+    title = "Strategy Categories",
+    subtitle = "Primary Label; % of Total N",
+    x = "Count", y = NULL
+  ) +
+  coord_cartesian(xlim = c(0, max(primary_counts$n) * 1.15), clip = "off") +
+  theme_cowplot() +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "bottom",
+    legend.justification = c(0, 0.5),
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    plot.margin = unit(c(1, 2, 1, 1), "lines"),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+primary_plot
+ggsave("../output/core2_strategies_primary_plot.tiff", plot = primary_plot, height = 190, width = 190, units = "mm")
+```
+
+### Multi Label
+
+```{r strategy-analysis-categories-multi}
+N_total <- nrow(core2_strategies)
+
+multi_long <- core2_strategies %>%
+  mutate(resp_id = row_number()) %>%
+  transmute(
+    resp_id,
+    q1 = strategyq1_categories,
+    q2 = strategyq2_categories
+  ) %>%
+  pivot_longer(c(q1, q2), names_to = "question", values_to = "cats") %>%
+  mutate(
+    question = recode(question, q1 = "Question 1", q2 = "Question 2")
+  ) %>%
+  separate_rows(cats, sep = ";", convert = FALSE) %>%
+  mutate(category = stringr::str_trim(cats)) %>%
+  filter(!is.na(category), category != "") %>%
+  distinct(resp_id, question, category)
+
+cat_order_multi <- multi_long %>%
+  count(category, sort = TRUE) %>%
+  pull(category)
+
+multi_counts <- multi_long %>%
+  mutate(category = factor(category, levels = rev(cat_order_multi))) %>%
+  count(question, category, name = "participants") %>%
+  mutate(share = participants / N_total)
+
+multi_plot <- multi_counts %>%
+  ggplot(aes(x = participants, y = category, fill = question)) +
+  geom_col(
+    position = position_dodge(width = 0.85),
+    width = 0.8, color = "black", linewidth = 0.25
+  ) +
+  geom_text(
+    aes(label = paste0(participants, " (", scales::percent(share, accuracy = 0.01), ")"),
+                 group = question),
+    position = position_dodge(width = 0.85),
+    hjust = -0.05, size = 3.0
+  ) +
+  scale_fill_grey(start = 0.35, end = 0.75, guide = guide_legend(title = NULL)) +
+  labs(
+    title = "Strategy Categories (Multilabel Mentions)",
+    subtitle = "% of Total N",
+    x = "Participants", y = NULL
+  ) +
+  coord_cartesian(xlim = c(0, max(multi_counts$participants) * 1.25)) +
+  cowplot::theme_cowplot() +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+multi_plot
+ggsave("../output/core2_strategies_multi_plot.tiff", plot = multi_plot, height = 190, width = 190, units = "mm")
+```
+
+### Overall
+
+```{r strategy-analysis-categories-overall}
+overall_counts <- core2_strategies %>%
+  filter(!is.na(strategy_overall_category), strategy_overall_category != "") %>%
+  count(strategy_overall_category, name = "n") %>%
+  mutate(pct = n / sum(n))
+
+overall_plot <- overall_counts %>%
+  ggplot(aes(x = n, y = fct_reorder(strategy_overall_category, n), fill = after_stat(NULL))) +
+  geom_col(width = 0.8, color = "black", linewidth = 0.25) +
+  geom_text(aes(label = paste0(n, " (", scales::percent(pct, accuracy = 0.01), ")")),
+            hjust = -0.1, size = 3.0) +
+  scale_fill_grey(guide = "none") +
+  labs(title = "Strategy Categories (Overall Primary)", x = "Count", y = NULL) +
+  coord_cartesian(xlim = c(0, max(overall_counts$n) * 1.15)) +
+  theme_cowplot() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+overall_plot
+ggsave("../output/core2_strategies_overall_plot.tiff", plot = overall_plot, height = 190, width = 250, units = "mm")
+```

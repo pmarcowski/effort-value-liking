@@ -1,0 +1,320 @@
+---
+title: "Analysis for Effort and Liking Study: Supplementary Experiments"
+output:
+  html_document:
+    theme: united
+    toc: true
+    number_sections: false
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(afex)
+library(effects)
+library(emmeans)
+library(ggpubr)
+library(cowplot)
+
+knitr::opts_chunk$set(fig.width = 10)
+emm_options(lmerTest.limit = 2e+5, pbkrtest.limit = 2e+5)
+
+# Prepare data for each experiment
+# source(here:here("R/prepare_data.R")) # Optional: prepares to `data/prepared/`
+```
+
+# Supplementary 2: Price ~ Liking
+
+## Data Import
+
+```{r supp1-data-load}
+# Load Supplementary 1 data and set factors
+supp1_long <-
+  read_csv("../data/prepared/supplementary/supp1.csv") %>%
+  mutate(
+    id = as.factor(id),
+    cond = factor(cond, levels = c("Liking First", "Price First"))
+  )
+```
+
+## Correlations
+
+```{r supp1-price-liking-correlations}
+# Compute within-participant correlations and compare by order
+cor <- supp1_long %>%
+  group_by(id, cond) %>%
+  summarize(
+    meanL = mean(Liking),
+    meanP = mean(Price),
+    sdL = sd(Liking),
+    sdP = sd(Price),
+    corl = cor(Liking, Price)
+  ) %>%
+  mutate(exclude = is.na(corl)) %>%
+  ungroup()
+
+excluded <- unique(cor[cor$exclude == TRUE, ]$id)
+table(cor$exclude)
+cor <- cor %>% filter(!id %in% excluded)
+table(cor$exclude)
+
+supp1_long %>%
+  filter(!id %in% excluded) %>%
+  group_by(cond) %>%
+  rstatix::cor_test(Liking, Price) %>%
+  knitr::kable(digits = 2)
+
+supp1_long %>%
+  filter(!id %in% excluded) %>%
+  group_by(cond) %>%
+  summarize(n = n())
+
+# Compare correlations
+cd <- supp1_long %>% filter(!id %in% excluded)
+cor_split <- split(as.data.frame(cd), cd$cond)
+cocor::cocor(~ Liking + Price | Liking + Price, cor_split)
+
+# Task Order Effect
+cor %>% rstatix::t_test(corl ~ cond, paired = TRUE)
+```
+
+### Plot: Scatterplots
+
+```{r supp1-price-liking-scatterplots}
+# Plot Price vs Liking scatter with linear fit and correlation distribution
+scatter_plot <- supp1_long %>%
+  filter(id %in% cor$id) %>%
+  ggplot(aes(x = Price, y = Liking)) +
+  geom_jitter(size = 0.75, alpha = 0.5) +
+  geom_smooth(method = "lm", fullrange = FALSE, color = "black") +
+  labs(title = "Relationship Between Price and Liking") +
+  scale_x_continuous(breaks = seq(1, 5, 1)) +
+  scale_y_continuous(breaks = seq(1, 5, 1)) +
+  coord_cartesian(xlim = c(0.5, 5.5), ylim = c(0.5, 5.5)) +
+  facet_wrap(
+    ~cond,
+    labeller = labeller(cond = c("liking_first" = "Liking First", "price_first" = "Price First"))
+  ) +
+  theme_cowplot() +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none",
+    plot.margin = margin(7, 28, 7, 7, "pt"),
+    plot.title = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+scatter_plot
+ggsave("../output/price_liking_scatter_plot.tiff", plot = scatter_plot, height = 90, width = 190, units = "mm")
+
+cor_distr_plot <- cor %>%
+  mutate(Condition = if_else(cond == "liking_first", "Liking First", "Price First")) %>%
+  ggplot(aes(x = corl)) +
+  geom_density(color = "black", fill = "grey") +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(x = "r", y = "Density", fill = "Condition") +
+  facet_wrap(
+    ~cond,
+    labeller = labeller(cond = c("liking_first" = "Liking First", "price_first" = "Price First"))
+  ) +
+  theme_cowplot() +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+cor_distr_plot
+ggsave("../output/price_liking_cor_plot.tiff", plot = cor_distr_plot, height = 90, width = 190, units = "mm")
+```
+
+# Supplementary 3: Price x Liking
+
+## Data Import
+
+```{r supp2-data-load}
+# Load Supplementary 2 data and set factors/levels
+supp2_long <-
+  read_csv("../data/prepared/supplementary/supp2.csv", col_types = cols(.default = "c")) %>%
+  mutate(
+    across(c(id, magnitude), as.factor),
+    liking = as.numeric(liking),
+    value = factor(value, levels = 1:5)
+  )
+```
+
+## Demographics
+
+```{r supp2-demographics}
+# Summarize participant counts
+supp2_long %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(id),
+    # mean_age = mean(age),
+    # sd_age = sd(age),
+    # n_male = n_distinct(id[gender == "Male"]),
+    # n_female = n_distinct(id[gender == "Female"]),
+    # n_other = n_distinct(id[gender == "Other"])
+  )
+```
+
+## Main Analyses
+
+### Mixed ANOVA: Magnitude x Value
+
+```{r supp2-liking-anova}
+# Fit mixed model for liking by magnitude × value with random slopes
+aov_liking <- mixed(
+  liking ~ magnitude * value + (magnitude | id),
+  data = supp2_long,
+  method = "S", control = lmerControl(optCtrl = list(maxfun = 1e+6))
+)
+
+nice(aov_liking)
+```
+
+### Post-hoc: Value by Magnitude
+
+```{r supp2-liking-emmeans}
+# EMMs and pairwise contrasts by magnitude
+liking_em1 <- emmeans(
+  aov_liking,
+  pairwise ~ value | magnitude,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+liking_em1
+liking_em1_means <- as.data.frame(liking_em1$emmeans)
+liking_em1_contrasts <- as.data.frame(summary(liking_em1)$contrasts)
+```
+
+### Plot: Price and Liking
+
+```{r supp2-liking-plot}
+# Plot liking across discrete price levels by magnitude
+aov_liking_plot <- supp2_long %>%
+  mutate(magnitude = recode(magnitude, "Big" = "Large")) %>%
+  ggplot(aes(
+    x = value, y = liking,
+    fill = forcats::fct_relevel(magnitude, "Small", "Large"),
+    group = forcats::fct_relevel(magnitude, "Small", "Large")
+  )) +
+  stat_summary(geom = "col", fun = mean, color = "black", position = "dodge") +
+  stat_summary(geom = "errorbar", fun.data = mean_cl_normal, color = "black", width = 0.2, position = position_dodge(0.95)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_cartesian(ylim = c(1, 5)) +
+  labs(title = "Explicit Price and Liking", x = "Price", y = "Mean Liking") +
+  guides(fill = guide_legend(title = "Price/Magnitude")) +
+  scale_fill_grey(start = 0.8, end = 0.2) +
+  scale_x_discrete(labels = c(
+    "1" = "$1\n$100", "2" = "$2\n$200", "3" = "$3\n$300",
+    "4" = "$4\n$400", "5" = "$5\n$500"
+  )) +
+  theme_cowplot() +
+  theme(
+    # aspect.ratio = 1,
+    legend.position = "bottom",
+    legend.justification = c(0.5, 0.5),
+    plot.title = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+aov_liking_plot
+ggsave("../output/explicit_liking_plot.tiff", plot = aov_liking_plot, height = 120, width = 100, units = "mm")
+```
+
+# Supplementary: Perform vs Observe
+
+## Data Import
+
+```{r online-perform-observe-data}
+# Load Perform vs Observe dataset and set factors
+supp_participate_observe_data <-
+  read_csv("../data/prepared/supplementary/participate_observe.csv") %>%
+  filter(condition %in% c("Liking", "Value")) %>%
+  mutate(
+    across(c(id, gender), as.factor),
+    perspective = factor(perspective, levels = c("Perform", "Observe")),
+    condition = factor(condition, levels = c("Liking", "Value")),
+    effort_level = factor(effort_level, levels = c("Low", "Medium", "High"))
+  )
+```
+
+```{r online-perform-observe-anova}
+# Fit mixed model for rating by effort × condition × perspective
+aov_supp_participate_observe <- mixed(
+  rating ~ effort_level * condition * perspective + (1 | id),
+  data = supp_participate_observe_data, method = "S"
+)
+
+nice(aov_supp_participate_observe)
+
+em_supp_participate_observe1 <- emmeans(
+  aov_supp_participate_observe,
+  pairwise ~ perspective | effort_level | condition,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+em_supp_participate_observe1
+
+em_supp_participate_observe_means1 <- as.data.frame(em_supp_participate_observe1$emmeans)
+em_supp_participate_observe_contrasts1 <- as.data.frame(em_supp_participate_observe1$contrasts)
+
+em_supp_participate_observe2 <- emmeans(
+  aov_supp_participate_observe,
+  pairwise ~ effort_level | perspective | condition,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+em_supp_participate_observe2
+```
+
+## Plot: Ratings by Perspective
+
+```{r online-perform-observe-plot}
+# Plot EMMs for perspective across effort and condition
+em_supp_participate_observe_plot <-
+  em_supp_participate_observe_means1 %>%
+  mutate(condition = recode(condition, "Value" = "Price")) %>%
+  ggplot(aes(x = effort_level, y = emmean, group = perspective)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_line(
+    aes(linetype = perspective),
+    position = position_dodge(width = 0.5)
+  ) +
+  geom_errorbar(
+    aes(ymin = lower.CL, ymax = upper.CL),
+    width = 0.2,
+    position = position_dodge(width = 0.5)
+  ) +
+  labs(
+    title = "Liking and Price",
+    subtitle = "Participating or Observing",
+    x = "Effort Level", y = "Mean Rating",
+    linetype = "Perspective"
+  ) +
+  coord_cartesian(ylim = c(1, 5)) +
+  theme_cowplot() +
+  facet_wrap(~condition) +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "bottom",
+    legend.justification = c(0.5, 0.5),
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+em_supp_participate_observe_plot
+ggsave("../output/participate_observe_plot.tiff", plot = em_supp_participate_observe_plot, height = 90, width = 190, units = "mm")
+```
