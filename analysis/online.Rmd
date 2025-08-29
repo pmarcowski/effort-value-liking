@@ -1,0 +1,911 @@
+---
+title: "Analysis for Effort and Liking Study: Online Experiments"
+output:
+  html_document:
+    theme: united
+    toc: true
+    number_sections: false
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(afex)
+library(emmeans)
+library(ggpubr)
+library(ggmosaic)
+library(cowplot)
+library(patchwork)
+
+knitr::opts_chunk$set(fig.width = 10)
+emm_options(lmerTest.limit = 2e+5, pbkrtest.limit = 2e+5)
+
+# Prepare data for each experiment
+# source(here:here("R/prepare_data.R")) # Optional: prepares to `data/prepared/`
+```
+
+# Experiment 3: Observed Effort
+
+## Data Import
+
+```{r online-observe-data-load}
+# Load Observe data and set factors
+online_observe_data <-
+  read_csv("../data/prepared/online/observe.csv") %>%
+  mutate(
+    id = as.factor(id),
+    effort_level = factor(effort_level, levels = c("Low", "Medium", "High")),
+    scale_type = factor(scale_type, levels = c("Liking", "Value"))
+  )
+```
+
+## Demographics
+
+```{r online-observe-demographics}
+# Summarize observe sample demographics
+online_observe_data %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(id),
+    mean_age = mean(age),
+    sd_age = sd(age),
+    n_male = n_distinct(id[gender == "male"]),
+    n_female = n_distinct(id[gender == "female"])
+  )
+```
+
+## Mixed ANOVA
+
+```{r online-observe-model}
+# Fit mixed model for rating by effort × scale_type
+aov_online_observe <- mixed(rating ~ effort_level * scale_type + (1 | id) + (1 | trial), data = online_observe_data)
+
+nice(aov_online_observe)
+
+em_online_observe <- emmeans(
+  aov_online_observe,
+  pairwise ~ effort_level | scale_type,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+em_online_observe
+em_online_observe_means <- as.data.frame(em_online_observe$emmeans)
+em_online_observe_contrasts <- as.data.frame(em_online_observe$contrasts)
+```
+
+## Plot: Observe Ratings
+
+```{r online-observe-plot}
+# Plot EMMs by effort and rating type
+em_online_observe_plot <-
+  em_online_observe_means %>%
+  mutate(scale_type = recode(scale_type, "Value" = "Price")) %>%
+  ggplot(aes(x = effort_level, y = emmean, group = scale_type)) +
+  geom_point() +
+  geom_line(aes(linetype = scale_type)) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+  scale_y_continuous(
+    sec.axis = sec_axis(~., labels = function(x) paste0("$", x, "00"))
+  ) +
+  labs(
+    title = "Ratings of Liking and Price",
+    subtitle = "Observed Effort",
+    x = "Effort Level", y = "Mean Rating",
+    linetype = "Rating Type"
+  ) +
+  coord_cartesian(ylim = c(1, 5)) +
+  theme_cowplot() +
+  facet_wrap(~scale_type) +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+em_online_observe_plot
+ggsave("../output/online_observe_plot.tiff", em_online_observe_plot, height = 90, width = 190, units = "mm")
+```
+
+# Experiment 4: Task Test (Online)
+
+## Data Import
+
+```{r online-taskloadclicks-data-load}
+# Load Taskload Clicks data and set factors
+online_taskloadclicks_data <-
+  read_csv("../data/prepared/online/taskloadclicks.csv") %>%
+  mutate(
+    id = as.factor(id),
+    effort_level = factor(effort_level, levels = c("Low", "Medium", "High")),
+    comp_type = case_when(component %in% c("Frustration", "Pleasant") ~ "Affective", TRUE ~ "Demand"),
+    comp_type = factor(comp_type, levels = c("Demand", "Affective")),
+    component = factor(
+      component,
+      levels = c("Frustration", "Pleasure", "Effort", "Physical", "Mental", "Temporal", "Performance")
+    )
+  )
+```
+
+## Demographics
+
+```{r online-taskloadclicks-data-demographics}
+online_taskloadclicks_data %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(id),
+    mean_age = mean(age),
+    sd_age = sd(age),
+    n_male = n_distinct(id[gender == "Male"]),
+    n_female = n_distinct(id[gender == "Female"]),
+    n_other = n_distinct(id[gender == "Other"])
+  )
+```
+
+## Main Analyses
+
+### Mixed ANOVA
+
+```{r online-taskloadclicks-anova}
+# Fit mixed model for rating by effort × component
+aov_online_taskloadclicks <- mixed(rating ~ effort_level * component + (1 | id), data = online_taskloadclicks_data)
+
+nice(aov_online_taskloadclicks)
+
+em_online_taskloadclicks <- emmeans(
+  aov_online_taskloadclicks,
+  pairwise ~ effort_level | component,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+em_online_taskloadclicks
+em_online_taskloadclicks_means <- as.data.frame(em_online_taskloadclicks$emmeans)
+em_online_taskloadclicks_contrasts <- as.data.frame(em_online_taskloadclicks$contrasts)
+```
+
+### Plot: Task Load Ratings
+
+```{r online-taskloadclicks-plot}
+# Plot taskload component ratings across effort
+em_online_taskloadclicks_plot <-
+  em_online_taskloadclicks_means %>%
+  ggplot(aes(x = effort_level, y = emmean, group = component)) +
+  geom_point() +
+  geom_line(aes(linetype = component)) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+  labs(
+    title = "Taskload by Effort Level",
+    subtitle = "Online Version",
+    x = "Effort Level", y = "Mean Rating"
+  ) +
+  coord_cartesian(ylim = c(0, 21)) +
+  facet_wrap(~component, scales = "free_x", ncol = 3) +
+  theme_cowplot() +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+em_online_taskloadclicks_plot
+ggsave("../output/online_taskload_plot.pdf", em_online_taskloadclicks_plot, height = 190, width = 190, units = "mm")
+```
+
+# Experiment 5: Value Judgements (Within)
+
+## Data Import
+
+```{r online-ratingclicks-within-data-load}
+online_ratingclicks_within_post <-
+  read_csv("../data/prepared/online/ratingclicks_within_post.csv") %>%
+  mutate(
+    id = as.factor(id)
+  )
+
+online_ratingclicks_within_main <-
+  read_csv("../data/prepared/online/ratingclicks_within_main.csv") %>%
+  mutate(
+    id = as.factor(id),
+    effort_level = factor(effort_level, levels = c("Low", "Medium", "High")),
+    condition = factor(condition, levels = c("Liking", "Value"))
+  )
+
+online_ratingclicks_within_taskload <-
+  read_csv("../data/prepared/online/ratingclicks_within_taskload.csv") %>%
+  mutate(
+    id = as.factor(id),
+    effort_level = factor(effort_level, levels = c("Low", "Medium", "High")),
+    component = as.factor(component)
+  )
+```
+
+## Demographics
+
+```{r online-ratingclicks-within-demographics}
+online_ratingclicks_within_main %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(id),
+    mean_age = mean(age),
+    sd_age = sd(age),
+    n_male = n_distinct(id[gender == "Male"]),
+    n_female = n_distinct(id[gender == "Female"]),
+    n_other = n_distinct(id[gender == "Other"])
+  )
+```
+
+## Main Analyses
+
+### Mixed ANOVA
+
+```{r online-ratingclicks-within-anova}
+# Fit mixed model for rating by effort × condition
+aov_online_ratingclicks_within_main <- mixed(
+  rating ~ effort_level * condition + (1 | id),
+  data = online_ratingclicks_within_main
+)
+
+nice(aov_online_ratingclicks_within_main)
+
+em_online_ratingclicks_within_main1 <- emmeans(
+  aov_online_ratingclicks_within_main,
+  pairwise ~ condition | effort_level,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+em_online_ratingclicks_within_main1
+em_online_ratingclicks_within_main_means1 <- as.data.frame(em_online_ratingclicks_within_main1$emmeans)
+em_online_ratingclicks_within_main_contrasts1 <- as.data.frame(em_online_ratingclicks_within_main1$contrasts)
+
+em_online_ratingclicks_within_main2 <- emmeans(
+  aov_online_ratingclicks_within_main,
+  pairwise ~ effort_level | condition,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+em_online_ratingclicks_within_main2
+```
+
+### Plot: Rating Clicks Within
+
+```{r online-ratingclicks-within-plot}
+# Plot EMMs across effort by condition
+em_online_ratingclicks_within_main_plot <-
+  em_online_ratingclicks_within_main_means1 %>%
+  mutate(condition = recode(condition, "Value" = "Price")) %>%
+  ggplot(aes(x = effort_level, y = emmean, group = condition)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_line(
+    aes(linetype = condition),
+    position = position_dodge(width = 0.5)
+  ) +
+  geom_errorbar(
+    aes(ymin = lower.CL, ymax = upper.CL),
+    width = 0.2,
+    position = position_dodge(width = 0.5)
+  ) +
+  scale_y_continuous(
+    sec.axis = sec_axis(~., labels = function(x) paste0("$", x, "00"))
+  ) +
+  labs(
+    title = "Ratings of Liking and Price",
+    subtitle = "Within Subjects",
+    x = "Effort Level", y = "Mean Rating"
+  ) +
+  coord_cartesian(ylim = c(1, 5)) +
+  theme_cowplot() +
+  facet_wrap(~condition) +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+em_online_ratingclicks_within_main_plot
+ggsave("../output/online_ratingclicks_within_plot.tiff", em_online_ratingclicks_within_main_plot, height = 90, width = 190, units = "mm")
+```
+
+## Taskload Comparison
+
+### Mixed ANOVA
+
+```{r online-ratingclicks-within-taskload-anova}
+# Fit mixed model for rating by effort × component
+aov_online_ratingclicks_within_taskload <- mixed(
+  rating ~ effort_level * component + (1 | id),
+  data = online_ratingclicks_within_taskload
+)
+
+nice(aov_online_ratingclicks_within_taskload)
+
+em_online_ratingclicks_within_taskload <- emmeans(
+  aov_online_ratingclicks_within_taskload,
+  pairwise ~ effort_level | component,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+em_online_ratingclicks_within_taskload
+em_online_ratingclicks_within_taskload_means <- as.data.frame(em_online_ratingclicks_within_taskload$emmeans)
+em_online_ratingclicks_within_taskload_contrasts <- as.data.frame(em_online_ratingclicks_within_taskload$contrasts)
+```
+
+### Plot: Taskload by Effort Level
+
+```{r online-ratingclicks-within-taskload-plot}
+# Plot taskload EMMs across effort
+em_online_ratingclicks_within_taskload_plot <-
+  em_online_ratingclicks_within_taskload_means %>%
+  ggplot(aes(x = effort_level, y = emmean)) +
+  geom_line(aes(linetype = component), group = 1) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2) +
+  labs(
+    title = "Ratings of Taskload by Effort Level",
+    subtitle = "Online Version",
+    x = "Effort Level", y = "Mean Rating"
+  ) +
+  guides(color = "none") +
+  coord_cartesian(ylim = c(1, 21)) +
+  ggsci::scale_color_jco() +
+  ggsci::scale_fill_jco() +
+  theme_cowplot() +
+  facet_wrap(~component, ncol = 3) +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+em_online_ratingclicks_within_taskload_plot
+```
+
+## Effort Trend Analysis
+
+```{r online-ratingclicks-within-trend}
+# Derive participant profiles across effort
+participant_mean_ratings <- online_ratingclicks_within_main %>%
+  pivot_wider(
+    id_cols = c(id, condition),
+    names_from = effort_level,
+    values_from = rating,
+    values_fn = mean
+  )
+
+participant_trends <- online_ratingclicks_within_main %>%
+  pivot_wider(
+    id_cols = c(id, condition),
+    names_from = effort_level,
+    values_from = rating,
+    values_fn = mean
+  ) %>%
+  mutate(
+    trend1 = case_when(
+      Low <= Medium & Medium <= High ~ "Increase",
+      Low >= Medium & Medium >= High ~ "Decrease",
+      Low < Medium & Medium > High ~ "Increase then Decrease",
+      Low > Medium & Medium < High ~ "Decrease then Increase",
+      TRUE ~ "Other"
+    ),
+    trend1 = factor(trend1, levels = c("Increase", "Decrease", 
+                                     "Increase then Decrease", 
+                                     "Decrease then Increase",
+                                     "Other"),
+                   labels = c("I", "D", "I-D", "D-I", "Other")),
+    trend2 = case_when(
+      High > Low ~ "Increasing",
+      High < Low ~ "Decreasing",
+      TRUE ~ "Flat"
+    ),
+    trend2 = factor(trend2, levels = c("Decreasing", "Increasing"))
+  ) %>%
+  select(id, condition, trend1, trend2) %>%
+  drop_na(trend1, trend2)
+
+trend_summary <- participant_trends %>%
+  count(condition, trend2) %>%
+  group_by(condition) %>%
+  mutate(
+    proportion = n / sum(n),
+    display = paste0(round(proportion * 100, 1), "% (", n, ")")
+  ) %>%
+  ungroup() %>%
+  select(condition, trend2, display) %>%
+  pivot_wider(names_from = trend2, values_from = display)
+
+trend_summary
+```
+
+### Plot: Trends
+
+```{r online-ratingclicks-within-trend-plot}
+# Plot profile proportions by condition
+participant_trends_plot <- participant_trends %>%
+  count(condition, trend2) %>%
+  group_by(condition) %>%
+  mutate(proportion = n / sum(n)) %>%
+  ungroup() %>%
+  mutate(condition = recode(condition, "Value" = "Price")) %>%
+  ggplot(aes(x = trend2, y = proportion, fill = trend2)) +
+  geom_col(color = "black") +
+  scale_fill_grey(start = 0.9, end = 0.5) +
+  scale_y_continuous(limits = c(0, 1)) +
+  facet_wrap(~condition) +
+  labs(
+    title = "Rating Profiles",
+    x = "Profile",
+    y = "Proportion"
+  ) +
+  theme_cowplot() +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+participant_trends_plot
+```
+
+### Plot: Journeys
+
+```{r online-ratingclicks-within-journey-plot}
+# Plot participant trajectories across effort
+slopegraph_data <- participant_trends %>%
+  left_join(participant_mean_ratings, by = c("id", "condition")) %>%
+  pivot_longer(
+    cols = c(Low, Medium, High),
+    names_to = "effort_level",
+    values_to = "mean_rating"
+  ) %>%
+  drop_na() %>%
+  mutate(
+    effort_level = factor(effort_level, levels = c("Low", "Medium", "High")),
+    condition = recode(condition, "Value" = "Price")
+  )
+
+faceted_slopegraph_plot <- ggplot(slopegraph_data, aes(x = effort_level, y = mean_rating, group = id)) +
+  geom_line(alpha = 0.4, linewidth = 0.8, color = "grey50") +
+  stat_summary(aes(group = 1), fun = mean, geom = "line", linewidth = 1.5) +
+  facet_grid(condition ~ trend1) +
+  coord_cartesian(ylim = c(1, 5)) +
+  labs(
+    title = "Rating Journeys",
+    x = "Effort Level",
+    y = "Mean Rating"
+  ) +
+  theme_cowplot() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent"),
+    strip.text = element_text(face = "bold")
+  )
+
+faceted_slopegraph_plot
+```
+
+### Dissociation Check
+
+```{r online-ratingclicks-within-dissociation}
+# Cross-tab profiles for Liking vs Price
+profile_variable_to_use <- "trend2"
+
+profiles_wide <- participant_trends %>%
+  select(id, condition, profile = all_of(profile_variable_to_use)) %>%
+  pivot_wider(id_cols = id, names_from = condition, values_from = profile) %>%
+  rename(Liking_Profile = Liking, Price_Profile = Value) %>%
+  filter(Liking_Profile != "Flat", Price_Profile != "Flat") %>%
+  mutate(across(c(Liking_Profile, Price_Profile), droplevels))
+
+profile_summary <- profiles_wide %>%
+  mutate(
+    Liking_Profile = forcats::fct_relevel(Liking_Profile, "Decreasing", "Increasing"),
+    Price_Profile  = forcats::fct_relevel(Price_Profile, "Increasing", "Decreasing")
+    ) %>%
+  xtabs(~ Price_Profile + Liking_Profile, data = .)
+
+profile_summary
+as.data.frame(profile_summary)
+
+profile_counts <- as.data.frame(profile_summary) %>%
+  rename(count = Freq) %>%
+  mutate(proportion = count / sum(count))
+```
+
+### Plot: Dissociation Bar
+
+```{r online-ratingclicks-within-dissociation-plot-bar}
+# Plot dissociation bar chart
+pd <- position_dodge2(width = 0.9, preserve = "single")
+
+dissociation_plot_bar <- profile_counts %>%
+  ggplot(aes(x = Liking_Profile, y = proportion, fill = Price_Profile)) +
+  geom_col(position = pd, color = "black") +
+  geom_text(
+    aes(label = sprintf("%d\n(%.0f%%)", count, 100 * proportion)),
+    position = pd,
+    vjust = -0.25,         
+    size = 3.5,
+    lineheight = 0.9,
+    color = "black"
+  ) +
+  scale_fill_grey(name = "Price Profile") +
+  labs(
+    title = "Profiles for Liking vs. Price",
+    x = "Liking Profile",
+    y = "Proportion"
+  ) +
+  coord_cartesian(ylim = c(0, 1.08)) +  
+  theme_cowplot() +
+  theme(
+    aspect.ratio = 1,
+    plot.title = element_text(hjust = 0.5),
+    legend.justification = c(0.5, 0.5),
+    legend.position = "bottom"
+  )
+
+dissociation_plot_bar
+ggsave("../output/dissociation_plot_bar.tiff", plot = dissociation_plot_bar, height = 90, width = 190, units = "mm")
+```
+
+### Plot: Dissociation Mosaic
+
+```{r online-ratingclicks-within-dissociation-plot-moisaic}
+# derive and plot directly from the table
+dissociation_plot_mosaic <-
+  as.data.frame(profile_summary) %>%
+  dplyr::rename(count = Freq) %>%
+  dplyr::mutate(
+    Liking_Profile = factor(Liking_Profile, levels = c("Decreasing", "Increasing")),
+    Price_Profile  = factor(Price_Profile,  levels = c("Decreasing", "Increasing"))
+  ) %>%
+  ggplot() +
+  ggmosaic::geom_mosaic(
+    aes(
+      x = product(Price_Profile, Liking_Profile),
+      weight = count,
+      fill = after_stat(.wt / sum(.wt))
+    ),
+    na.rm = TRUE,
+    offset = 0.015,
+    color = "black",
+    linewidth = 0.5
+  ) +
+  ggmosaic::geom_mosaic_text(
+    aes(
+      x = product(Price_Profile, Liking_Profile),
+      weight = count,
+      label = sprintf("%d\n(%.2f%%)", after_stat(.wt),
+                      100 * after_stat(.wt) / sum(after_stat(.wt)))
+    ),
+    size = 3.5,
+    color = "black"
+  ) +
+  scale_fill_gradient(name = "Share", labels = scales::percent,
+                      low = "grey90", high = "grey10") +
+  labs(
+    title = "Profiles for Liking vs. Price",
+    x = "Liking Profile",
+    y = "Price Profile"
+  ) +
+  theme_cowplot() +
+  theme(
+    aspect.ratio = 1,
+    plot.title = element_text(hjust = 0.5),
+    axis.text.y = element_text(angle = 90, hjust = 0.5),
+    axis.line = element_blank(),
+    axis.ticks = element_blank(),
+    legend.position = "none"
+  )
+
+dissociation_plot_mosaic
+ggsave("../output/dissociation_plot_mosaic.tiff", plot = dissociation_plot_mosaic, height = 90, width = 190, units = "mm")
+```
+
+# Experiment 7A: Buy/Sell (Between)
+
+## Data Import
+
+```{r supp4-buysell-data-load}
+# Load Buy/Sell (between) data and set factors
+supp_buysell_data <-
+  read_csv("../data/prepared/supplementary/buysell.csv") %>%
+  mutate(
+    id = factor(id),
+    effort_level = factor(effort_level, levels = c("Low", "Medium", "High")),
+    condition = factor(condition, levels = c("Buy", "Sell"))
+  )
+
+supp_buysell_tlx_summary <-
+  supp_buysell_data %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup()
+```
+
+## Demographics
+
+```{r supp4-buysell-demographics}
+supp_buysell_data %>%
+  group_by(condition) %>%
+  summarize(n = n_distinct(id))
+```
+
+## Main Analyses
+
+### Mixed ANOVA
+
+```{r supp4-buysell-anova}
+# Fit mixed model for price by condition × effort
+supp_buysell_aov <- mixed(
+  rating ~ condition * effort_level + (1 | id),
+  data = supp_buysell_data,
+  method = "S",
+  control = lmerControl(optCtrl = list(maxfun = 1e6))
+)
+
+nice(supp_buysell_aov)
+
+supp_buysell_emm_by_condition <- emmeans(
+  supp_buysell_aov,
+  pairwise ~ effort_level | condition,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+supp_buysell_emm_by_condition
+supp_buysell_means_by_condition <- as.data.frame(supp_buysell_emm_by_condition$emmeans)
+supp_buysell_contrasts_by_condition <- as.data.frame(supp_buysell_emm_by_condition$contrasts)
+
+supp_buysell_emm_by_effort <- emmeans(
+  supp_buysell_aov,
+  pairwise ~ condition | effort_level,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+supp_buysell_emm_by_effort
+supp_buysell_means_by_effort <- as.data.frame(supp_buysell_emm_by_effort$emmeans)
+supp_buysell_contrasts_by_effort <- as.data.frame(supp_buysell_emm_by_effort$contrasts)
+```
+
+### Plot: Buy/Sell Prices
+
+```{r supp4-buysell-plot}
+# Plot buying vs selling prices across effort
+supp_buysell_aov_plot <-
+  supp_buysell_data %>%
+  mutate(condition = recode(condition, "Buy" = "Buyer", "Sell" = "Seller")) %>%
+  ggplot(aes(x = effort_level, y = rating, group = condition)) +
+  stat_summary(geom = "point", fun = mean, position = position_dodge(width = 0.5)) +
+  stat_summary(
+    mapping = aes(linetype = condition),
+    geom = "line", fun = mean,
+    position = position_dodge(width = 0.5)
+  ) +
+  stat_summary(
+    geom = "errorbar", fun.data = mean_ci,
+    width = 0.2,
+    position = position_dodge(width = 0.5)
+  ) +
+  labs(
+    title = "Buying and Selling Prices",
+    subtitle = "Between Subjects",
+    x = "Effort", y = "Mean Price",
+    linetype = "Condition"
+  ) +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme_cowplot() +
+  facet_wrap(~condition) +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+supp_buysell_aov_plot
+ggsave("../output/online_buysell_between_plot.tiff", plot = supp_buysell_aov_plot, height = 90, width = 190, units = "mm")
+```
+
+### Moderation by Task Load (NASA-TLX)
+
+```{r supp4-buysell-moderation}
+# Moderation model with rescaled TLX (NASA-TLX)
+dbs <- mutate(supp_buysell_data, nasa_tlx = scales::rescale(nasa_tlx, c(0, 1)))
+supp_buysell_mod <- lmer(rating ~ effort_level * nasa_tlx * condition + (1 | id), data = dbs)
+
+anova(supp_buysell_mod)
+
+supp_buysell_mod_list <- list(
+  moder = c(
+    round(mean(scales::rescale(supp_buysell_tlx_summary$nasa_tlx, c(0, 1))) - sd(scales::rescale(supp_buysell_tlx_summary$nasa_tlx, c(0, 1))), 2),
+    round(mean(scales::rescale(supp_buysell_tlx_summary$nasa_tlx, c(0, 1))), 2),
+    round(mean(scales::rescale(supp_buysell_tlx_summary$nasa_tlx, c(0, 1))) + sd(scales::rescale(supp_buysell_tlx_summary$nasa_tlx, c(0, 1))), 2)
+  )
+)
+```
+
+### Plot: Moderation Effects
+
+```{r supp4-buysell-moderation-plot}
+supp_buysell_mod_plot <- interactions::interact_plot(
+  supp_buysell_mod,
+  pred = "nasa_tlx",
+  modx = "effort_level", mod2 = "condition",
+  legend.main = "NASA-TLX",
+  modx.labels = c("-1 SD", "Mean", "+1 SD"),
+  mod2.labels = c("Buy" = "Buying", "Sell" = "Selling"),
+  main.title = "Moderation of Purchase Judgements by Task Load"
+) +
+  labs(x = "Performed Steps (Proportion)", y = "Rating") +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme_cowplot() +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+supp_buysell_mod_plot
+```
+
+# Experiment 7B: Buy/Sell (Within)
+
+## Data Import
+
+```{r online-buysell-within-data-load}
+# Load Buy/Sell (within) data and set factors
+online_buysell_within_main <-
+  read_csv("../data/prepared/online/buysell_within_main.csv") %>%
+  mutate(
+    id = as.factor(id),
+    effort_level = factor(effort_level, levels = c("Low", "Medium", "High")),
+    condition = factor(condition, levels = c("Buyer", "Seller"))
+  )
+```
+
+## Demographics
+
+```{r supp4-buysell-within-demographics}
+online_buysell_within_main %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(id),
+    mean_age = mean(age),
+    sd_age = sd(age),
+    n_male = n_distinct(id[gender == "Male"]),
+    n_female = n_distinct(id[gender == "Female"]),
+    n_other = n_distinct(id[gender == "Other"])
+  )
+```
+
+## Main Analyses
+
+### Mixed ANOVA
+
+```{r online-buysell-within-model}
+# Fit mixed model for price by effort × condition
+aov_online_buysell_within <- mixed(
+  rating ~ effort_level * condition + (1 | id),
+  data = online_buysell_within_main
+)
+
+nice(aov_online_buysell_within)
+
+em_online_buysell_within_by_condition <- emmeans(
+  aov_online_buysell_within,
+  pairwise ~ effort_level | condition,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+em_online_buysell_within_by_condition
+em_online_buysell_within_by_condition_means <- as.data.frame(em_online_buysell_within_by_condition$emmeans)
+em_online_buysell_within_by_condition_contrasts <- as.data.frame(em_online_buysell_within_by_condition$contrasts)
+
+em_online_buysell_within_by_effort <- emmeans(
+  aov_online_buysell_within,
+  pairwise ~ condition | effort_level,
+  infer = TRUE,
+  adjust = "mvt"
+)
+
+em_online_buysell_within_by_effort
+em_online_buysell_within_means <- as.data.frame(em_online_buysell_within_by_effort$emmeans)
+em_online_buysell_within_contrasts <- as.data.frame(em_online_buysell_within_by_effort$contrasts)
+```
+
+### Plot: Buy/Sell Within Ratings
+
+```{r online-buysell-within-plot}
+# Plot within-subject prices across effort
+em_online_buysell_within_plot <-
+  em_online_buysell_within_means %>%
+  ggplot(aes(x = effort_level, y = emmean, group = condition)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_line(
+    aes(linetype = condition),
+    position = position_dodge(width = 0.5)
+  ) +
+  geom_errorbar(
+    aes(ymin = lower.CL, ymax = upper.CL),
+    width = 0.2,
+    position = position_dodge(width = 0.5)
+  ) +
+  scale_y_continuous(labels = c("1" = "$100", 
+                                "2" = "$200",
+                                "3" = "$300",
+                                "4" = "$400",
+                                "5" = "$500")) +
+  labs(
+    title = "Buying and Selling Prices",
+    subtitle = "Within-Subjects",
+    x = "Effort Level", y = "Mean Price",
+    linetype = "Condition"
+  ) +
+  coord_cartesian(ylim = c(1, 5)) +
+  theme_cowplot() +
+  facet_wrap(~condition) +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+em_online_buysell_within_plot
+ggsave("../output/online_buysell_within_plot.tiff", em_online_buysell_within_plot, height = 90, width = 190, units = "mm")
+```
+
+## Belief Analyses: Rating Clicks Within
+
+### Belief Proportions
+
+```{r online-ratingclicks-within-belief-plot}
+# Summarize belief counts for Liking and Price
+online_ratingclicks_within_beliefs <- online_ratingclicks_within_post %>%
+  select(id, belief_liking, belief_value)
+
+online_ratingclicks_within_beliefs_plot <- online_ratingclicks_within_beliefs %>%
+  gather(belief, value, -id) %>%
+  count(belief, value) %>%
+  mutate(belief = str_to_title(str_remove(belief, "belief_"))) %>%
+  ggplot(aes(x = value, y = n, fill = value)) +
+  geom_col(color = "black") +
+  scale_fill_grey() +
+  facet_wrap(~belief) +
+  theme_cowplot() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    strip.background = element_rect(color = "transparent", fill = "transparent")
+  )
+
+online_ratingclicks_within_beliefs_plot
+```
