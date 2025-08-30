@@ -145,7 +145,7 @@ ggsave("../output/supplementary_taskload_plot.pdf", plot = aov_taskload_plot, he
 
 # Experiment 2: Value Judgements (Core 1)
 
-## Data Import and Preprocessing
+## Data Import
 
 ```{r core1-import-main-data}
 # Load Core 1 data and set factors/numeric fields

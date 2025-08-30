@@ -56,11 +56,11 @@ core1_post_experiment_data <- read_csv('data/raw/core/exp1-post.csv') %>%
 # Main experiment data
 core1_main_data <-
   read_csv('data/raw/core/exp1-main.csv') %>%
-  left_join(core1_demographics_data) %>%
-  left_join(core1_nasa_tlx_frustration_scores) %>%
-  left_join(core1_nasa_tlx_total_scores) %>%
-  left_join(core1_performance_data) %>%
-  left_join(core1_post_experiment_data) %>%
+  left_join(core1_demographics_data, by = "subjID") %>%
+  left_join(core1_nasa_tlx_frustration_scores, by = "subjID") %>%
+  left_join(core1_nasa_tlx_total_scores, by = "subjID") %>%
+  left_join(core1_performance_data, by = c("subjID", "trial")) %>%
+  left_join(core1_post_experiment_data, by = "subjID") %>%
   mutate(
     across(c(sex, condition, effort_level), str_to_sentence),
     across(c(rel_liking, rel_value, rel_wanting), recode, `2` = 'Less', `3` = 'Neither', `1` = 'More')
@@ -111,30 +111,6 @@ online_post_survey <-
   group_by(experiment_name, id) %>%
   slice(1) %>%
   ungroup()
-
-## Rating Clicks Data ----
-
-online_ratingclicks_files <- fs::dir_ls('data/raw/online/ratingclicks', type = 'file', regexp = '.csv')
-
-# Combine rating clicks files, harmonize rating/rt, and join post-survey
-online_ratingclicks_data <-
-  tibble(file_name = online_ratingclicks_files) %>%
-  mutate(file_content = map(file_name, data.table::fread)) %>%
-  unnest(cols = c(file_content)) %>%
-  mutate(across(where(is.character), ~na_if(.x, ''))) %>%
-  group_by(id) %>%
-  mutate(
-    rt = coalesce(liking_rt, value_rt),
-    rating = coalesce(liking_rating, value_rating),
-    scale_first = scale_order,
-    across(c(effort_level, scale_type), str_to_sentence)
-  ) %>%
-  fill(trial, effort_level, effort_time, .direction = 'down') %>%
-  ungroup() %>%
-  select(experiment_name, id, trial, effort_level, effort_time, scale_first, scale_type, rt, rating) %>%
-  drop_na() %>%
-  left_join(select(online_post_survey, id, gender, age, nasa_tlx), by = "id") %>%
-  drop_na()
 
 ## Taskload ----
 
@@ -410,7 +386,7 @@ supp_buysell_main <-
 supp_buysell_performance <-
   tibble(
     file_name = fs::dir_ls(
-      'data/raw/supplementary/buysell/perf/',
+      'data/raw/supplementary/buysell_between/perf/',
       type = 'file', regexp = '.xlsx'
     )
   ) %>%
@@ -432,7 +408,7 @@ supp_buysell_performance <-
 supp_buysell_tlx_id <-
   tibble(
     file_name = fs::dir_ls(
-      'data/raw/supplementary/buysell/tlx/',
+      'data/raw/supplementary/buysell_between/tlx/',
       type = 'file', recurse = TRUE, regexp = '.csv'
     )
   ) %>%
@@ -448,7 +424,7 @@ supp_buysell_tlx_id <-
 supp_buysell_tlx_data <-
   tibble(
     file_name = fs::dir_ls(
-      'data/raw/supplementary/buysell/tlx/',
+      'data/raw/supplementary/buysell_between/tlx/',
       type = 'file', recurse = TRUE,
       regexp = '.csv'
     )
@@ -700,7 +676,6 @@ supplementary_price_magnitude_data <-
 
 write_csv(core1_main_data, 'data/prepared/core/core1.csv')
 write_csv(core2_data, 'data/prepared/core/core2.csv')
-write_csv(online_ratingclicks_data, 'data/prepared/online/ratingclicks.csv')
 write_csv(online_taskloadclicks_data, 'data/prepared/online/taskloadclicks.csv')
 write_csv(online_observe_data, 'data/prepared/online/observe.csv')
 write_csv(supplementary_task_data, 'data/prepared/supplementary/tasktest.csv')

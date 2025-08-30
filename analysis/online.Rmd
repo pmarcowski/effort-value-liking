@@ -628,7 +628,7 @@ ggsave("../output/dissociation_plot_mosaic.tiff", plot = dissociation_plot_mosai
 ```{r supp4-buysell-data-load}
 # Load Buy/Sell (between) data and set factors
 supp_buysell_data <-
-  read_csv("../data/prepared/supplementary/buysell.csv") %>%
+  read_csv("../data/prepared/supplementary/buysell_between.csv") %>%
   mutate(
     id = factor(id),
     effort_level = factor(effort_level, levels = c("Low", "Medium", "High")),
