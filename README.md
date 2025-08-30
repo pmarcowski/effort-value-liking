@@ -19,12 +19,9 @@ This repository contains data, analysis notebooks, and materials for a paper sho
 
 Across multiple experiments, participants who **worked** to obtain stimuli often **liked** them **less** but **priced** them **higher**. We combine lab and online samples to reveal dissociable effects on hedonic vs. monetary judgments.
 
----
-
 ## Directory Structure
 
 ```
-
 effort-value-liking/
 ├── analysis/
 │   ├── core.Rmd
@@ -39,7 +36,6 @@ effort-value-liking/
 │   └── prepare_data.R
 ├── LICENSE
 └── README.md
-
 ````
 
 ## Installation
@@ -48,11 +44,11 @@ No installation is required beyond having R and the necessary libraries. To run 
 
 ## Usage
 
-1. Clone this repository and navigate to the project directory:
+Clone this repository and navigate to the project directory:
 
-   ```bash
-   git clone https://github.com/pmarcowski/effort-value-liking.git
-   cd effort-value-liking
+```bash
+git clone https://github.com/pmarcowski/effort-value-liking.git
+cd effort-value-liking
 ````
 
 ## Analyses
