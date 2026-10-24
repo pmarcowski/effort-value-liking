@@ -1,0 +1,9 @@
+TASK INSTRUCTIONS
+
+You will be asked to collect a number of calligraphy art pieces. Each calligraphy is associated with a different level of effort, i.e., number of steps needed to collect it.
+
+When a calligraphy is presented, collect it by performing the effort with the step simulator under your desk. When the number of steps needed to collect a given calligraphy is reached, you will proceed to the next one. Try performing the steps as quickly as you can. Note that each calligraphy will be presented on the screen for a limited amount of time.
+
+After collecting each calligraphy, use the scale presented on the screen to indicate how much you like or dislike that calligraphy. Use the [F] and [K] keys to navigate the scale and confirm your choice by pressing [SPACE]. There will be a 15 second rest period following the collection and rating of each calligraphy.
+
+Make your ratings carefully as you will receive one of your highly rated pieces of calligraphy at the end of the study.

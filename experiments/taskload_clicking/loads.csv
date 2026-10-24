@@ -1,0 +1,11 @@
+load_type,load_question,load_low,load_high
+mental,How mentally demanding was the task?,Very Low,Very High
+physical,How physically demanding was the task?,Very Low,Very High
+temporal,How hurried or rushed was the pace of the task?,Very Low,Very High
+performance,How successful were you in accomplishing what you were asked to do?,Perfect,Failure
+effort,How hard did you have to work to  accomplish your level of performance?,Very Low,Very High
+frustration,"How insecure, discouraged, irritated, stressed, and annoyed were you?",Very Low,Very High
+pleasure,How pleasant was it for you to complete the task?,Very Low,Very High
+meaning,How meaningful did you find this trial?,Definitely meaningless,Definitely meaningful
+efficient,How efficient did you feel while completing this trial?,Not at all efficient,Very efficient
+depend,How much did the progress on this trial depend on the effort you put into it?,Not at all dependent,Completely dependent

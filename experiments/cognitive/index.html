@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Rating Task</title>
+
+    <!-- jsPsych core -->
+    <script src="jspsych/jspsych.js"></script>
+    <link  href="jspsych/jspsych.css" rel="stylesheet" type="text/css" />
+
+    <!-- jsPsych plugins -->
+    <script src="jspsych/plugin-html-button-response.js"></script>
+    <script src="jspsych/plugin-html-keyboard-response.js"></script>
+    <script src="jspsych/plugin-call-function.js"></script>
+
+    <!-- Pavlovia integration -->
+    <script src="lib/jspsych-7-pavlovia-2022.1.1.js"></script>
+
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        overflow-x: hidden;
+      }
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.6;
+        background-color: #1a1a1a;
+        color: #ffffff;
+      }
+      #jspsych-display {
+        width: 100%;
+        max-width: 100vw;
+      }
+      .jspsych-display-element {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      .jspsych-content {
+        max-width: 960px;
+      }
+      .jspsych-html-button-response-button button,
+      .jspsych-btn {
+        padding: 12px 36px;
+        font-size: 1em;
+        cursor: pointer;
+        border-radius: 0;
+      }
+      input[type="text"],
+      input[type="text"]:focus,
+      button {
+        border-radius: 0 !important;
+        -webkit-appearance: none;
+      }
+
+      /* Range slider styling */
+      input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        box-sizing: border-box;
+        display: block;
+        margin: 0;
+        height: 8px;
+        border-radius: 4px;
+        background: #555;
+        outline: none;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--thumb-color, #4488ff);
+        cursor: pointer;
+        border: 2px solid #fff;
+        position: relative;
+        z-index: 4;
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--thumb-color, #4488ff);
+        cursor: pointer;
+        border: 2px solid #fff;
+        position: relative;
+        z-index: 4;
+      }
+
+      /* ===== Shared effort-task layout (used by both cogletters and subtractn arms) ===== */
+
+      .trial-center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 22px;
+      }
+
+      .effort-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #fff;
+        text-align: center;
+        line-height: 1.3;
+        max-width: 480px;
+      }
+
+      /* ===== Cogletters arm ===== */
+
+      .source-wrap {
+        width: 100%;
+        max-width: 480px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        padding: 0 20px;
+      }
+      .source-strip {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 28px;
+        letter-spacing: 0.32em;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        line-height: 1;
+      }
+      .src-char {
+        display: inline-block;
+        min-width: 1ch;
+        text-align: center;
+        color: #666;
+        transition: color 100ms ease-out;
+      }
+      .src-char.upcoming { color: #666; }
+      .src-char.current {
+        color: #fff;
+        font-size: 48px;
+        font-weight: 500;
+        background: rgba(255,255,255,0.08);
+        padding: 6px 10px;
+        margin: 0 4px;
+        transition: background 80ms ease-out;
+      }
+      .src-char.current.ok  { background: rgba(124,227,139,0.25); }
+      .src-char.current.err { background: rgba(255,184,108,0.30); }
+
+      .alphabet-grid {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 10px;
+        border: 1px solid rgba(255,255,255,0.15);
+        background: rgba(255,255,255,0.03);
+        align-self: start;
+      }
+      .alphabet-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+      }
+      .alphabet-cell {
+        width: 20px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 14px;
+        color: #9aa0a6;
+      }
+
+      /* ===== Subtractn arm ===== */
+
+      .running-number {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 56px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        color: #fff;
+        background: #111;
+        border: 1px solid rgba(255,255,255,0.15);
+        padding: 14px 28px;
+      }
+      .step-input {
+        font: inherit;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 44px;
+        letter-spacing: 0.08em;
+        width: 260px;
+        text-align: center;
+        background: #1a1a1a;
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.15);
+        padding: 10px 14px;
+        outline: none;
+        transition: background 80ms ease-out;
+      }
+      .step-input:focus { border-color: #9aa0a6; }
+      .step-input.flash { background: #5a5a5a; }
+
+      /* ===== Walk scene (mirrors ratingclicks2 physical layout: figure on ground, goal on right) ===== */
+
+      .walk-scene {
+        position: relative;
+        width: 900px;
+        height: 280px;
+        margin: 0 auto 12px;
+      }
+      .walk-ground {
+        position: absolute;
+        left: 0; right: 0; top: 240px;
+        height: 3px;
+        background: #fff;
+      }
+      .walk-figure {
+        position: absolute;
+        top: 180px; left: 0;
+        width: 30px; height: 60px;
+        transition: left 250ms ease-out;
+      }
+      .walk-figure svg { width: 30px; height: 60px; display: block; }
+      .walk-goal-frame {
+        position: absolute;
+        right: 30px; top: 10px;
+        width: 220px; height: 220px;
+        border: 2px solid rgba(255,255,255,0.4);
+        box-sizing: border-box;
+      }
+      .walk-img {
+        position: absolute;
+        right: 30px; top: 10px;
+        width: 220px; height: 220px;
+        overflow: hidden;
+        transition: opacity 0.3s;
+      }
+      .walk-goal-arrow {
+        /* Practice marker: points down at the figure's arrival spot. Sits
+           above the figure so it doesn't overlap the head when the figure
+           arrives (figure occupies y=180–240 at its rest position). */
+        position: absolute;
+        left: 611px; top: 110px;
+        width: 48px; height: 64px;
+        opacity: 0.7;
+        pointer-events: none;
+      }
+      .walk-goal-arrow svg { width: 48px; height: 64px; display: block; }
+
+      /* ===== Countdown stage (used by the per-trial Ready? screen) ===== */
+
+      #stage {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 22px;
+        min-height: 420px;
+      }
+      .countdown { font-size: 4.5rem; font-weight: 500; line-height: 1; color: #fff; }
+      .ready     { font-size: 1.4rem; font-weight: 600; color: #fff; }
+      .hint      { font-size: 0.88rem; color: #9aa0a6; text-align: center; }
+
+      /* Secondary instruction caption — sits below the answer input on the
+         trial screen, describing the submit-and-advance mechanic. */
+      .task-hint {
+        font-size: 0.95rem;
+        color: #c8ccd0;
+        text-align: center;
+        line-height: 1.4;
+        max-width: 420px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="jspsych-display"></div>
+    <script src="main.js?v=4"></script>
+  </body>
+</html>

@@ -1,0 +1,257 @@
+id,gender,age,belief_liking,belief_value,instrumental_task,necessary_effort,worthwhile_effort,meaning_task,meaning_effort,actions_purpose,tlx_mental,tlx_physical,tlx_temporal,tlx_performance,tlx_effort,tlx_frustration,tlx_pleasure
+33674,Female,23,Less,No Difference,3,3,3,4,2,2,30,50,45,65,70,50,35
+36954,Female,24,More,More,4,5,4,4,5,4,10,25,20,0,30,15,65
+38374,Female,22,More,More,3,3,3,3,3,3,30,0,20,30,30,25,40
+39830,Female,22,Less,Less,2,3,2,2,2,2,55,60,45,25,45,75,35
+40119,Female,21,No Difference,No Difference,1,2,2,2,4,4,0,0,15,0,60,95,10
+40306,Female,21,More,Less,4,3,4,4,4,4,30,45,45,45,60,45,25
+40377,Female,22,Less,No Difference,5,5,2,2,2,4,75,70,30,10,90,75,50
+40503,Female,20,No Difference,More,2,4,4,2,4,3,60,70,50,55,90,90,5
+40527,Female,21,No Difference,More,2,3,3,2,2,2,5,80,0,0,75,50,0
+40540,Female,21,No Difference,No Difference,2,3,2,3,2,2,40,55,40,40,40,40,20
+40604,Female,21,No Difference,More,3,2,1,4,4,4,0,45,0,0,10,70,20
+40930,Female,21,More,More,1,1,1,1,1,1,0,10,40,0,0,90,0
+40987,Female,21,No Difference,No Difference,2,1,1,1,1,1,15,10,25,10,25,100,0
+41008,Female,21,More,More,2,3,3,1,2,2,10,5,75,10,5,75,0
+41199,Male,18,Less,Less,3,3,3,3,3,3,45,50,50,50,50,50,50
+41399,Female,21,More,More,3,4,1,1,1,2,25,20,20,0,20,20,15
+41409,Female,21,More,More,3,4,3,4,4,4,5,5,5,5,10,5,40
+41425,Female,21,No Difference,Less,2,4,2,2,2,2,60,60,55,45,15,75,15
+41500,Female,21,More,More,1,1,3,4,2,2,15,20,20,0,10,15,85
+41515,Female,21,Less,More,3,4,1,1,1,5,70,5,20,5,65,80,5
+41556,Male,21,More,More,3,4,4,3,4,5,45,65,60,15,65,35,30
+41798,Female,21,No Difference,No Difference,1,1,1,1,1,3,55,5,30,10,60,100,5
+42006,Female,21,No Difference,No Difference,1,1,1,1,1,1,5,35,5,5,5,100,5
+42139,Female,21,Less,More,3,4,3,2,4,4,0,15,15,5,15,15,5
+42215,Female,21,More,More,3,4,2,2,2,3,20,65,30,80,60,65,25
+42224,Female,21,Less,More,2,3,1,1,1,1,0,0,0,0,0,25,15
+42227,Female,21,Less,More,1,5,2,2,4,4,60,60,80,0,90,65,10
+42233,Female,21,Less,No Difference,4,5,3,1,1,2,20,35,60,25,30,75,15
+42242,Female,21,Less,More,3,2,4,3,2,2,55,60,50,50,35,20,45
+42327,Female,22,No Difference,More,2,5,3,3,3,5,50,20,55,100,60,40,35
+42356,Female,21,No Difference,More,2,3,1,1,1,1,5,15,50,0,15,40,0
+42358,Other,20,More,Less,3,3,2,3,2,3,95,45,35,35,50,50,45
+42453,Female,21,No Difference,More,2,3,2,2,2,2,15,35,45,0,20,20,10
+42474,Female,21,No Difference,More,1,1,3,2,4,2,20,10,5,10,30,15,10
+42508,Female,21,Less,No Difference,1,1,1,1,1,1,0,0,0,0,0,60,10
+42511,Female,21,No Difference,More,1,2,1,1,2,2,15,30,35,0,0,90,90
+42569,Female,21,Less,More,3,2,2,2,4,4,60,40,65,5,50,60,5
+42573,Female,21,More,More,2,4,4,2,2,2,40,60,40,75,50,60,10
+42575,Female,21,Less,More,3,5,2,2,2,2,15,35,30,10,40,90,10
+42665,Female,21,No Difference,More,2,1,1,1,1,1,0,5,15,0,5,55,10
+42742,Female,22,Less,Less,3,2,4,4,4,4,60,95,70,90,70,45,25
+42808,Male,21,Less,More,5,2,2,1,1,4,20,60,5,0,40,100,0
+42946,Female,21,Less,No Difference,2,3,2,2,2,2,45,20,15,20,35,65,20
+42991,Female,21,No Difference,No Difference,4,4,1,4,3,1,100,100,10,100,50,100,0
+43378,Female,21,More,No Difference,4,4,2,2,4,4,10,20,35,15,60,65,40
+43387,Female,21,More,More,4,5,4,4,4,3,30,15,50,75,65,15,70
+43602,Female,21,More,No Difference,3,4,2,2,2,2,35,20,90,0,45,60,50
+43622,Female,21,More,More,2,4,2,2,4,4,20,0,20,5,15,65,15
+43630,Female,21,No Difference,No Difference,2,4,2,2,2,3,20,25,20,40,50,35,10
+43775,Female,21,Less,Less,3,3,2,2,2,2,55,55,35,30,45,75,25
+43824,Female,22,More,More,4,4,1,1,2,2,20,5,45,15,65,80,20
+43867,Female,20,More,More,3,3,3,3,3,3,55,55,60,60,60,60,60
+43989,Female,21,No Difference,No Difference,3,3,1,1,1,1,50,65,50,65,40,100,0
+44074,Male,22,More,More,2,2,3,2,4,4,75,55,40,15,65,55,50
+44270,Female,21,No Difference,More,4,5,5,4,5,5,5,75,85,0,85,30,70
+44571,Female,21,More,More,1,5,1,1,1,1,15,65,5,100,10,85,0
+44716,Female,20,More,More,2,2,3,3,3,3,50,80,45,25,35,95,10
+44805,Female,19,More,More,4,4,2,3,2,3,90,30,50,0,60,100,30
+44813,Male,21,No Difference,No Difference,3,3,3,2,2,2,75,40,20,50,70,85,10
+44977,Female,46,More,More,3,3,1,1,2,1,90,50,75,5,90,95,5
+45000,Female,20,More,More,1,5,1,1,1,1,80,70,10,0,80,90,0
+45027,Female,20,Less,Less,4,4,1,1,1,4,15,10,35,100,40,100,0
+45155,Female,20,Less,More,2,4,4,4,2,4,75,50,100,5,100,75,90
+45227,Female,20,Less,More,2,2,1,1,2,2,15,95,60,0,25,100,5
+45245,Other,20,Less,No Difference,3,4,2,3,4,4,50,35,30,5,85,95,5
+45263,Female,20,No Difference,No Difference,4,5,3,4,4,5,15,15,0,0,10,35,25
+45272,Female,20,Less,No Difference,2,3,4,2,4,4,0,5,10,5,20,25,25
+45287,Female,20,No Difference,More,1,5,3,3,3,2,5,5,10,10,15,30,15
+45335,Female,21,No Difference,More,4,5,2,1,1,4,75,75,40,20,65,80,10
+45424,Female,20,Less,More,1,1,1,1,1,2,0,0,15,0,40,40,0
+45438,Male,25,More,No Difference,2,4,1,1,2,1,0,0,0,0,0,70,0
+45550,Female,22,Less,More,4,4,3,3,2,4,90,15,20,0,20,75,5
+45610,Female,20,No Difference,More,3,4,1,1,2,2,10,10,20,100,30,25,0
+45634,Female,20,Less,Less,3,2,2,3,3,1,15,15,25,10,10,60,30
+45785,Female,20,More,More,3,4,4,4,5,5,45,70,60,10,60,65,65
+45972,Female,20,More,No Difference,3,4,2,2,2,3,65,25,50,15,35,55,0
+46038,Female,20,More,More,2,2,2,3,2,3,20,5,20,5,20,30,10
+46082,Female,20,Less,More,3,3,2,4,2,2,50,65,70,50,30,95,20
+46232,Female,21,No Difference,More,1,5,4,1,3,2,5,100,5,0,100,100,10
+46246,Female,21,More,More,5,5,3,2,5,5,5,35,40,5,25,15,50
+46267,Female,20,More,More,2,2,1,1,1,2,25,5,20,0,20,15,0
+46358,Male,19,Less,More,4,4,3,3,4,5,20,85,15,0,75,20,85
+46373,Female,21,More,No Difference,3,4,3,2,3,4,80,80,65,5,90,75,40
+46770,Female,20,Less,More,4,3,2,2,4,4,50,85,25,0,80,35,70
+46864,Female,20,More,No Difference,4,5,5,2,3,3,70,65,15,0,80,90,40
+46867,Female,20,No Difference,No Difference,1,2,2,2,2,1,10,15,25,40,15,45,5
+46883,Female,21,More,No Difference,4,2,4,4,4,4,5,5,10,0,0,10,45
+46906,Female,25,No Difference,No Difference,3,4,4,4,4,4,50,65,70,25,60,60,55
+46915,Female,19,No Difference,No Difference,1,1,1,1,1,1,0,0,0,0,0,100,0
+46921,Female,20,More,More,3,4,3,2,4,4,60,25,50,20,70,70,40
+46940,Female,20,Less,More,2,1,1,1,1,2,85,30,65,5,5,85,5
+46951,Female,20,Less,More,2,5,4,1,2,1,5,5,10,5,10,75,5
+46969,Female,20,More,More,2,2,1,1,1,1,25,30,50,80,35,90,5
+47022,Female,20,Less,More,3,3,3,3,3,3,40,40,45,45,45,100,100
+47025,Female,20,No Difference,More,2,1,2,1,1,3,5,15,0,5,35,50,10
+47153,Male,21,More,More,4,5,2,2,3,4,10,5,0,0,5,10,35
+47217,Female,21,More,More,3,4,2,2,2,2,65,45,65,55,70,100,25
+47250,Female,20,More,Less,5,5,3,2,2,2,80,5,10,100,80,80,10
+47273,Female,20,No Difference,More,1,5,3,3,4,4,60,15,20,0,85,100,50
+47327,Female,20,More,More,2,5,5,4,5,5,0,25,0,0,80,0,30
+47381,Female,20,More,More,3,4,1,1,1,1,60,0,100,5,5,100,0
+47556,Female,20,More,More,5,5,2,1,2,3,0,45,10,0,55,75,15
+47581,Female,20,No Difference,More,2,2,2,1,2,2,10,5,15,5,5,50,5
+47599,Female,20,Less,No Difference,3,3,3,3,3,3,70,80,60,5,50,50,40
+47684,Female,21,No Difference,No Difference,4,3,1,1,2,3,15,50,40,5,40,85,5
+47844,Female,20,Less,More,1,5,1,2,3,2,10,10,20,5,15,60,0
+47886,Male,21,More,More,3,3,2,2,3,4,15,15,15,50,20,10,80
+47899,Female,20,More,More,1,1,1,1,1,1,70,10,60,20,70,95,5
+48116,Female,20,No Difference,More,2,2,2,2,2,3,75,65,30,60,95,100,5
+48142,Male,20,No Difference,More,2,2,3,2,3,2,5,5,0,15,5,60,5
+48163,Female,18,More,More,4,5,3,2,2,2,75,65,15,65,40,95,0
+48215,Female,20,More,More,1,1,1,1,2,2,40,35,30,35,50,65,30
+48331,Male,20,Less,Less,1,1,1,1,1,1,40,40,40,80,55,50,50
+48336,Male,20,More,More,5,5,2,2,3,4,5,10,50,0,40,35,60
+48378,Female,20,More,More,5,3,2,2,2,4,40,25,10,50,25,70,5
+48388,Female,20,Less,Less,1,1,1,1,1,1,100,100,100,40,100,100,0
+48404,Female,20,Less,More,3,2,3,2,2,2,15,0,0,0,15,35,0
+48457,Female,21,No Difference,More,5,5,1,1,4,1,5,15,25,0,25,60,0
+48529,Female,40,No Difference,No Difference,3,3,3,2,3,4,5,5,5,0,5,35,5
+48531,Other,20,No Difference,No Difference,1,4,1,3,3,1,5,5,10,0,10,10,0
+48537,Female,20,No Difference,More,3,3,3,3,3,3,0,20,25,15,15,90,15
+48614,Male,20,No Difference,More,5,5,3,3,3,3,20,20,10,5,20,20,30
+48656,Female,21,No Difference,More,2,4,3,2,2,3,10,5,5,0,15,50,15
+48664,Female,20,More,Less,3,5,3,4,4,4,60,5,50,45,100,40,40
+48666,Female,22,More,No Difference,3,5,2,1,3,1,0,0,5,0,0,25,5
+48728,Female,20,Less,Less,3,3,2,2,3,2,55,40,35,55,30,30,20
+48876,Female,20,More,More,1,1,2,3,3,3,20,0,35,10,5,60,0
+49411,Female,20,Less,More,2,4,3,2,3,5,60,30,55,65,65,70,35
+49531,Male,19,Less,Less,4,3,4,3,4,4,45,20,30,40,25,25,45
+49536,Female,21,No Difference,Less,2,3,2,4,4,3,5,25,30,85,45,90,50
+49601,Female,20,No Difference,No Difference,5,2,1,2,2,4,30,15,30,15,85,100,55
+49645,Female,21,Less,Less,3,3,3,3,3,3,10,35,5,10,5,35,5
+49662,Female,21,More,More,4,4,4,4,4,4,45,60,65,60,75,35,30
+49670,Female,21,Less,More,4,5,4,4,3,3,80,25,75,0,55,60,15
+49715,Female,19,No Difference,More,1,2,2,1,1,1,45,25,80,50,30,50,5
+49759,Female,35,No Difference,More,2,1,1,1,1,1,10,0,100,100,0,75,0
+49771,Female,21,No Difference,No Difference,3,3,2,3,2,4,100,100,30,60,40,100,0
+49804,Female,19,More,More,3,4,4,3,4,4,30,45,55,15,25,20,65
+49846,Male,21,More,More,1,2,2,2,2,2,80,50,5,5,5,100,5
+49929,Female,21,More,More,2,4,2,2,4,2,70,65,40,35,70,70,40
+49934,Female,20,No Difference,No Difference,1,1,2,2,2,1,35,10,15,5,20,55,5
+49982,Female,21,More,More,4,4,2,2,4,3,5,5,20,65,65,80,10
+50132,Female,29,No Difference,More,3,4,1,1,3,2,65,35,30,0,65,55,0
+50204,Female,21,More,More,2,2,4,3,4,4,5,60,15,55,25,45,10
+50217,Female,19,Less,More,3,3,4,2,4,4,45,60,55,40,65,70,30
+50236,Female,19,More,More,2,1,2,3,2,1,70,55,25,85,20,90,15
+50259,Female,28,No Difference,No Difference,1,1,1,1,1,1,80,50,70,0,100,15,0
+50308,Male,20,No Difference,More,5,5,1,1,1,1,0,70,0,20,80,85,0
+50399,Male,19,More,More,3,4,2,2,4,4,60,20,35,0,30,75,0
+50441,Female,19,More,More,2,4,2,1,2,4,15,5,5,5,15,80,5
+50479,Female,21,More,More,4,4,3,3,2,4,5,20,10,5,15,10,35
+50693,Female,21,No Difference,More,4,4,4,2,2,4,45,25,40,5,65,60,25
+50727,Female,22,No Difference,More,5,5,2,2,3,3,5,0,50,100,0,25,0
+50754,Female,19,Less,No Difference,3,4,2,1,1,2,80,50,85,0,25,90,0
+51070,Female,20,No Difference,No Difference,1,1,1,1,1,1,0,0,0,0,0,100,0
+51073,Male,21,Less,Less,1,3,1,1,1,1,5,0,25,0,90,100,0
+51104,Female,21,No Difference,No Difference,2,3,1,1,1,1,35,95,35,15,80,85,0
+51159,Male,19,More,More,5,5,2,2,2,4,10,10,50,0,15,70,5
+51224,Male,22,No Difference,More,1,2,1,2,2,3,20,45,65,70,35,90,10
+51285,Female,20,No Difference,No Difference,3,3,4,4,3,3,70,80,75,20,85,55,55
+51349,Female,19,More,More,1,2,1,1,1,1,80,90,0,30,80,100,0
+51364,Female,18,More,No Difference,3,3,4,4,3,3,45,35,100,0,50,90,15
+51377,Female,19,More,More,1,1,1,1,1,2,5,5,35,5,5,100,5
+51389,Male,19,More,More,1,4,4,3,2,4,60,0,20,5,35,70,20
+51406,Female,18,Less,More,3,4,4,4,4,3,45,40,40,5,20,55,70
+51432,Female,19,Less,Less,1,1,1,1,1,1,10,15,15,45,15,75,5
+51451,Male,21,More,More,1,3,4,4,2,4,0,50,35,0,45,35,15
+51456,Female,19,Less,More,1,2,2,2,2,2,50,25,25,50,25,75,25
+51538,Female,21,No Difference,No Difference,1,1,1,1,1,2,10,0,50,0,40,95,0
+51604,Female,19,No Difference,More,1,1,1,1,2,2,15,55,55,95,75,75,5
+51673,Other,19,More,More,3,4,2,3,2,4,20,50,35,25,35,50,20
+51752,Other,21,More,More,3,2,2,3,2,2,30,15,25,60,50,25,10
+51851,Female,21,Less,Less,1,2,3,3,3,1,30,65,55,45,60,100,5
+51868,Female,20,More,More,1,4,3,2,2,1,0,0,0,0,15,10,35
+51892,Female,19,No Difference,Less,5,4,2,3,4,4,100,95,90,80,65,75,75
+52176,Female,19,More,More,4,4,3,2,3,2,50,65,20,35,70,60,40
+52237,Female,20,Less,More,2,2,1,1,1,2,25,5,35,10,20,75,15
+52340,Female,20,Less,More,3,2,1,1,3,4,90,90,80,65,85,100,15
+52387,Male,30,Less,Less,2,4,2,2,4,4,60,60,65,70,60,55,70
+52551,Male,19,No Difference,No Difference,3,2,4,1,1,1,75,95,35,80,80,100,0
+52609,Female,19,Less,More,3,4,3,2,3,2,15,15,25,25,20,5,5
+52765,Female,19,Less,More,3,2,3,3,4,4,35,35,40,10,15,45,25
+52789,Female,19,Less,More,2,4,1,1,1,1,20,20,10,45,15,100,0
+52929,Male,19,More,More,3,4,1,1,1,1,85,10,70,5,40,95,0
+53027,Male,21,Less,More,4,3,2,3,3,2,70,70,75,75,80,80,15
+53125,Female,19,More,Less,4,3,3,4,2,2,55,50,45,40,45,45,45
+53127,Other,19,More,No Difference,4,1,1,1,1,1,0,100,10,10,100,100,0
+53170,Female,21,No Difference,More,2,3,2,4,3,2,15,30,35,0,65,55,10
+53187,Female,20,No Difference,More,2,2,2,2,2,2,15,5,0,5,15,40,35
+53238,Female,19,Less,More,3,4,4,2,3,3,30,85,35,90,75,90,5
+53335,Female,19,No Difference,More,1,1,1,1,1,1,0,50,0,0,55,100,0
+53396,Female,19,More,More,2,4,4,4,4,4,35,5,10,5,10,25,15
+53441,Female,19,Less,No Difference,1,1,1,1,3,4,15,70,10,0,85,95,0
+53446,Female,20,No Difference,More,2,5,4,2,2,2,70,75,85,40,85,100,35
+53460,Male,19,More,No Difference,2,2,2,3,3,4,40,50,20,15,30,20,25
+53486,Female,20,No Difference,More,2,2,2,4,4,4,50,75,20,0,35,60,20
+53724,Male,20,No Difference,No Difference,4,2,1,1,1,2,15,25,25,10,20,45,25
+53728,Female,19,Less,More,3,4,2,2,2,4,20,75,40,0,75,60,35
+53733,Female,18,Less,More,3,4,1,1,1,1,90,75,0,0,95,100,0
+53805,Female,18,No Difference,More,2,4,4,1,4,4,75,25,75,35,40,85,60
+53842,Female,19,No Difference,No Difference,1,1,1,1,1,1,5,0,0,10,0,35,0
+53870,Female,18,More,More,3,5,5,4,4,5,70,95,50,10,75,50,90
+53910,Female,18,Less,More,2,1,1,1,1,1,25,25,10,35,30,70,5
+53937,Female,18,More,More,2,2,1,1,2,4,5,10,5,5,10,15,0
+53978,Female,18,No Difference,No Difference,2,1,2,1,2,4,10,10,5,5,10,95,5
+53982,Male,20,More,No Difference,2,1,2,2,2,2,35,15,35,5,40,70,0
+54030,Female,21,More,No Difference,1,1,2,2,2,2,70,5,5,15,5,80,5
+54041,Female,19,Less,Less,3,4,3,2,4,4,10,20,25,0,5,20,30
+54049,Male,18,No Difference,More,4,4,2,2,4,4,20,15,35,0,40,55,50
+54086,Male,18,No Difference,No Difference,1,1,1,1,1,1,5,5,5,5,5,100,5
+54132,Female,19,More,More,3,5,2,4,2,3,65,10,75,30,85,100,55
+54160,Female,18,More,More,4,5,2,2,2,3,45,30,50,35,70,60,35
+54164,Male,20,More,No Difference,3,1,1,1,1,4,70,60,60,0,80,90,30
+54197,Female,20,More,No Difference,1,5,2,1,2,2,35,85,35,0,75,100,20
+54198,Female,18,Less,More,3,5,2,2,1,3,10,5,0,0,15,100,0
+54218,Female,18,More,More,5,2,2,2,3,4,35,15,15,0,25,50,25
+54219,Female,18,Less,More,4,2,4,2,2,3,60,20,25,45,20,75,25
+54241,Female,38,No Difference,More,2,3,2,2,3,3,15,10,15,5,25,15,25
+54250,Female,19,Less,More,2,5,1,1,1,3,100,75,100,50,50,100,0
+54251,Female,20,No Difference,No Difference,3,4,3,4,2,4,55,20,5,80,45,35,5
+54285,Female,18,More,More,2,5,3,2,4,2,25,75,45,5,60,100,5
+54312,Female,29,No Difference,No Difference,3,3,3,3,3,3,10,10,10,10,10,10,10
+54330,Female,18,Less,No Difference,2,2,1,1,1,1,90,85,10,15,75,100,10
+54368,Female,19,No Difference,No Difference,2,4,3,2,3,3,10,15,20,80,25,90,10
+54372,Female,19,More,No Difference,1,1,1,1,1,1,75,0,0,90,90,100,0
+54386,Female,18,More,More,5,5,5,5,5,5,35,65,60,5,75,30,100
+54387,Male,21,No Difference,More,1,1,3,4,1,4,20,5,5,85,5,100,5
+54395,Female,20,No Difference,More,1,2,3,2,2,4,55,35,75,15,60,55,5
+54429,Female,21,No Difference,No Difference,2,5,2,2,2,4,75,75,30,20,75,75,5
+54451,Male,20,More,More,3,3,3,2,2,3,65,65,55,35,50,75,30
+54465,Female,26,Less,Less,1,1,2,1,1,2,85,65,85,5,70,90,15
+54491,Female,22,No Difference,More,2,4,4,2,4,4,15,5,10,20,70,5,5
+54492,Male,24,More,No Difference,1,5,1,1,3,1,100,20,5,0,100,95,0
+54493,Female,18,No Difference,No Difference,2,3,2,2,2,4,45,25,40,40,50,65,30
+54505,Female,20,Less,No Difference,3,1,1,1,3,2,10,0,20,45,35,60,25
+54551,Female,19,More,More,1,2,2,2,4,4,5,50,5,5,25,85,30
+54582,Female,18,Less,No Difference,3,5,4,1,4,5,0,50,25,0,15,60,80
+54606,Female,18,More,More,2,1,1,1,1,1,25,0,25,0,0,100,0
+54615,Female,18,More,More,3,3,4,3,3,4,75,65,85,100,70,85,50
+54616,Female,19,No Difference,More,1,2,1,3,1,2,15,90,10,20,100,100,5
+54623,Female,20,More,More,3,3,3,3,3,3,5,5,15,10,5,5,10
+54659,Female,18,No Difference,More,2,5,4,2,4,4,75,65,55,20,95,95,25
+54662,Male,21,More,More,1,2,3,3,3,3,25,75,50,0,50,50,20
+54663,Female,21,More,No Difference,2,3,2,3,4,3,45,25,45,15,35,50,30
+54673,Female,18,More,More,1,1,1,1,1,1,80,5,55,35,100,100,5
+54683,Female,18,More,More,4,4,2,3,4,5,70,35,10,20,70,55,45
+54686,Female,18,No Difference,More,2,2,2,1,4,2,30,50,25,5,70,80,0
+54711,Female,22,More,More,4,3,2,2,2,4,50,40,65,5,60,90,35
+54715,Male,21,Less,No Difference,3,2,2,1,2,4,5,5,5,40,35,65,5
+54727,Other,36,More,More,2,4,4,4,4,4,0,20,5,55,35,80,5
+54755,Female,18,Less,More,4,5,4,1,3,3,55,65,10,5,95,100,15
+54756,Female,18,No Difference,No Difference,1,1,2,2,2,1,15,15,15,20,20,65,5
+54757,Female,18,Less,More,3,4,1,1,2,2,65,15,75,25,25,60,10
+54765,Female,20,No Difference,No Difference,1,1,1,1,1,1,0,0,0,0,0,20,20
+54769,Male,18,More,More,1,5,3,2,2,3,80,70,20,75,85,60,40
+54812,Female,19,No Difference,No Difference,1,3,2,2,2,2,5,5,10,15,10,30,10

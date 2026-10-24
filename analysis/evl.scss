@@ -1,0 +1,64 @@
+/*-- scss:defaults --*/
+
+$web-font-path: "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Space+Grotesk:wght@500&display=swap";
+$font-family-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+$headings-font-family: "Space Grotesk", system-ui, sans-serif;
+$headings-font-weight: 500;
+
+$body-bg: #ffffff;
+$body-color: #14161a;
+$link-color: #007a58;
+$navbar-bg: #ffffff;
+$navbar-fg: #14161a;
+$navbar-hl: #007a58;
+$code-color: #14161a;
+$code-block-bg: #f6f7f8;
+$callout-color-note: #007a58;
+
+/*-- scss:rules --*/
+
+:root {
+  --bg: #ffffff;
+  --ink: #14161a;
+  --subtle: #5c6169;
+  --accent: #007a58;
+  --accent-soft: rgba(0, 122, 88, 0.08);
+  --rule: #dedbd5;
+  --hairline: rgba(20, 22, 26, 0.12);
+  color-scheme: light;
+}
+
+html {
+  font-size: clamp(16px, 0.45vw + 0.78rem, 19px);
+}
+
+.navbar {
+  border-bottom: 1px solid var(--rule);
+}
+
+.navbar .navbar-brand {
+  font-family: $headings-font-family;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.3rem;
+}
+
+.subtitle, .quarto-title-meta {
+  color: var(--subtle);
+}
+
+table td, table th {
+  vertical-align: top;
+}
+
+.studies td:nth-child(5), .studies th:nth-child(5) {
+  white-space: nowrap;
+}

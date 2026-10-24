@@ -1,0 +1,19 @@
+trialNum	effortLevelTrain	effortRepTrain	scaleTypeTrain	scaleTextTrain	effortLevelProc	effortRepProc	scaleTypeProc	scaleTextProc
+1	low	30	Mental_Demand	How mentally demanding was the task?	low	30	Mental_Demand	How mentally demanding was the task?
+2	medium	100	Physical_Demand	How physically demanding was the task?	medium	100	Physical_Demand	How physically demanding was the task?
+3	high	270	Temporal_Demand	How hurried or rushed was the pace of the task?	high	270	Temporal_Demand	How hurried or rushed was the pace of the task?
+			Performance	How successful were you in accomplishing what you were asked to do?	low	30	Performance	How successful were you in accomplishing what you were asked to do?
+			Effort	How hard did you have to work to accomplish your level of performance?	high	270	Effort	How hard did you have to work to accomplish your level of performance?
+			Frustration	"How insecure, discouraged, irritated, stressed, and annoyed were you?"	medium	100	Frustration	"How insecure, discouraged, irritated, stressed, and annoyed were you?"
+			Pleasant	How pleasant was it for you to complete the task?	high	270	Pleasant	How pleasant was it for you to complete the task?
+					medium	100		
+					low	30		
+					medium	100		
+					low	30		
+					high	270		
+					medium	100		
+					high	270		
+					low	30		
+					high	270		
+					low	30		
+					medium	100		

@@ -1,44 +1,34 @@
-# History files
-.Rhistory
-.Rapp.history
-
-# Session Data files
-.RData
-.RDataTmp
-
-# User-specific files
-.Ruserdata
-
-# Output files from R CMD build
-/*.tar.gz
-
-# Output files from R CMD check
-/*.Rcheck/
-
-# RStudio files
-.Rproj.user/
-
-# Produced vignettes
-*.html
-*.pdf
-
-# Output
-output/**
-!output/.gitkeep
-
-# Auth tokens
-.httr-oauth
-
-# knitr and R markdown cache
-*_cache/
-cache/
-
-# R Environment Variables
-.Renviron
-
-# RStudio Connect folder
-rsconnect/
-
-# OS junk
+# OS
 .DS_Store
 Thumbs.db
+
+# IDE
+.vscode
+
+# R
+.Rhistory
+.RData
+.Renviron
+.Rproj.user/
+*_cache/
+
+# Data (raw)
+experiments/*/data/raw/
+experiments/qualtrics/
+
+# Large media
+experiments/*/stimuli/
+experiments/*/*.mp4
+
+# Rendered output
+output/
+analysis/_site/
+analysis/*.knit.md
+analysis/.vdoc.*
+
+# Deployment records (Posit Publisher)
+.posit/
+
+# Internal
+work/
+wiki/

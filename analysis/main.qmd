@@ -1,0 +1,2025 @@
+---
+title: "Main Experiments"
+author: "Przemek Marcowski"
+---
+
+This notebook holds the seven main experiments on how effort shapes hedonic
+(liking) versus monetary (price) value: laboratory stepping (Experiment 1),
+observed effort (Experiment 2), within-subjects clicking (Experiment 3),
+effort-contingent perceptual reveal (Experiment 4, followed by its post-effort
+target reveal, Experiment S7), cognitive effort (Experiment 5), and buying and
+selling prices between and within subjects (Experiments 6A and 6B).
+Every experiment follows one rhythm: one factorial omnibus model, the linear
+effort slope of each judgment with its confidence interval, and the slope
+difference, which is the dissociation test. Time-on-task checks, task-load
+moderation, naive beliefs, and participant rating profiles follow where the
+design recorded them. Prepared data are read from each experiment's `data/`
+directory.
+
+| Section | Reported as | Figures |
+|---|---|---|
+| Experiment 1: Laboratory Stepping | Experiment 1 | 2; S6, S7, S8 |
+| Experiment 2: Observed Effort | Experiment 2 | 3 |
+| Experiment 3: Within-Subjects Clicking | Experiment 3 | 4 |
+| Experiment 4: Effort-Contingent Reveal | Experiment 4; Experiment S7 in the Supplemental Material | 5; S15 |
+| Experiment 5: Cognitive Effort | Experiment 5; task-by-task detail in the Supplemental Material | 6; S12, S13 |
+| Experiment 6A: Buying and Selling Prices, Between Subjects | Experiment 6A | 7 |
+| Experiment 6B: Buying and Selling Prices, Within Subjects | Experiment 6B | 7 |
+
+```{r setup, warning=FALSE}
+library(tidyverse)
+library(afex)
+library(emmeans)
+library(here)
+
+here::i_am("analysis/main.qmd")
+set.seed(42)
+emm_options(lmer.df = "satterthwaite", lmerTest.limit = 2e+5)
+
+source(here("R/functions.R"))
+```
+
+# Experiment 1: Laboratory Stepping
+
+Participants performed a stepping task at three effort levels to collect
+artworks, then rated them on one of three between-subjects scales: liking,
+wanting, or price. The confirmatory test is the condition-by-effort
+interaction—whether effort moves hedonic and monetary judgments in
+different directions. Every participant who completed the session enters the
+analyses.
+
+```{r stepping-data}
+stepping_data <-
+  read_csv(here("experiments/stepping/data/main.csv"), show_col_types = FALSE) %>%
+  set_effort_levels() %>%
+  mutate(
+    subjID = as.factor(subjID),
+    sex = as.factor(sex),
+    condition = factor(condition, levels = c("Liking", "Value", "Wanting")),
+    across(c(rel_liking, rel_value, rel_wanting), ~factor(.x, levels = c("Less", "Neither", "More"))),
+    across(-where(is.factor), \(x) as.numeric(x))
+  )
+
+n_stepping <- n_distinct(stepping_data$subjID)
+```
+
+The sample comprises `r n_stepping` participants.
+
+```{r stepping-sample}
+stepping_data %>%
+  group_by(subjID) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(subjID),
+    mean_age = mean(age), sd_age = sd(age),
+    n_male = n_distinct(subjID[sex == "Male"]),
+    n_female = n_distinct(subjID[sex == "Female"]),
+    n_other = n_distinct(subjID[sex == "Other"])
+  )
+```
+
+## Main Analysis
+
+We fit one factorial model with rating condition and effort level as fixed
+effects and a random intercept per participant, and the interaction carries
+the dissociation.
+
+```{r stepping-omnibus}
+stepping_omnibus <- mixed(
+  rating ~ condition * effort_level + (1 | subjID),
+  data = stepping_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(stepping_omnibus)
+```
+
+A second model with effort as a numeric level index gives the linear effort
+slope of each scale, and the pairwise slope differences test whether the
+scales diverge.
+
+```{r stepping-slopes}
+stepping_trend <- mixed(
+  rating ~ condition * effort_num + (1 | subjID),
+  data = stepping_data,
+  method = "S", control = evl_lmer_control, progress = FALSE
+)
+
+stepping_slopes <- emtrends(stepping_trend, ~condition, var = "effort_num", infer = TRUE)
+stepping_slopes
+
+stepping_slope_diffs <- withr::with_seed(
+  42, pairs(stepping_slopes, infer = TRUE, adjust = "mvt", reverse = TRUE)
+)
+stepping_slope_diffs
+```
+
+::: {.callout-note title="Key result"}
+```{r stepping-key-result}
+#| echo: false
+#| results: asis
+report_slopes(stepping_slopes, stepping_slope_diffs, labels = c(Value = "Price"))
+```
+:::
+
+```{r stepping-plot}
+stepping_means <- as.data.frame(emmeans(stepping_omnibus, ~ effort_level * condition))
+
+stepping_plot <-
+  stepping_means %>%
+  mutate(
+    condition = recode(condition, "Value" = "Price"),
+    condition = fct_relevel(condition, "Liking", "Wanting")
+  ) %>%
+  ggplot(aes(x = effort_level, y = emmean, group = condition, colour = condition)) +
+  geom_errorbar(
+    aes(ymin = lower.CL, ymax = upper.CL),
+    width = 0.15, linewidth = 0.3
+  ) +
+  geom_line() +
+  geom_point() +
+  scale_evl() +
+  scale_y_continuous(
+    sec.axis = sec_axis(~., labels = label_price)
+  ) +
+  facet_wrap(~condition) +
+  labs(title = "Liking, Wanting, and Price", x = "Effort Level", y = "Mean Rating") +
+  coord_cartesian(ylim = c(1, 5)) +
+  theme_evl()
+
+save_figure(stepping_plot, "stepping_ratings")
+```
+
+## Time on Task
+
+The effort manipulation also lengthens trials, so the interaction should hold
+with performance time in the model.
+
+```{r stepping-omnibus-time}
+stepping_omnibus_time <- mixed(
+  rating ~ condition * effort_level + effort_time + (1 | subjID),
+  data = stepping_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(stepping_omnibus_time)
+```
+
+Time on task should track effort level but not the judgment participants were
+assigned to make.
+
+```{r stepping-duration}
+stepping_duration <- mixed(
+  effort_time ~ condition * effort_level + (1 | subjID),
+  data = stepping_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(stepping_duration)
+```
+
+## Moderation by Task Load
+
+Performed steps and the post-task NASA-TLX score, both rescaled to the unit
+interval, enter a three-way model with rating condition. The exploratory
+question is whether effort moves ratings more among participants who found the
+task more demanding.
+
+```{r stepping-task-load}
+stepping_task_load_data <- stepping_data %>%
+  select(everything(), effort = effort_trials, moder = adjusted_overall) %>%
+  mutate(across(c(effort, moder), ~scales::rescale(.x, c(0, 1))))
+
+stepping_task_load <- lmer(rating ~ effort * moder * condition + (1 | subjID),
+                           data = stepping_task_load_data)
+
+anova(stepping_task_load, type = 3)
+```
+
+```{r stepping-task-load-plot}
+stepping_task_load_plot <- interactions::interact_plot(
+  stepping_task_load,
+  pred = "effort",
+  modx = "moder", mod2 = "condition",
+  legend.main = "Task Load (NASA-TLX)",
+  line.thickness = 0.7,
+  modx.labels = c("-1 SD", "Mean", "+1 SD"),
+  mod2.values = c("Liking", "Wanting", "Value"),
+  mod2.labels = c("Liking", "Wanting", "Price"),
+  main.title = "Moderation of Ratings by Task Load"
+) +
+  # interact_plot interpolates its own gradient for a numeric moderator, so the
+  # palette steps are mapped onto the moderator groups here
+  aes(colour = modx_group) +
+  scale_colour_manual(
+    values = c(
+      "-1 SD" = evl_colours[["Teal Light"]], "Mean" = evl_colours[["Teal"]],
+      "+1 SD" = evl_colours[["Teal Dark"]]
+    ),
+    name = "Task Load (NASA-TLX)"
+  ) +
+  scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1")) +
+  labs(x = "Performed Steps (Proportion of Maximum)", y = "Mean Rating") +
+  coord_cartesian(ylim = c(1, 5)) +
+  theme_evl(legend = "bottom")
+
+save_figure(stepping_task_load_plot, "stepping_task_load_moderation")
+```
+
+## Beliefs
+
+Participants also stated how they believed effort relates to liking, price,
+and wanting, and the proportions summarize those naive theories.
+
+```{r stepping-beliefs}
+stepping_beliefs <-
+  stepping_data %>%
+  select(subjID, contains("rel_")) %>%
+  group_by(subjID) %>%
+  slice(1) %>%
+  ungroup() %>%
+  rename("Liking" = "rel_liking", "Price" = "rel_value", "Wanting" = "rel_wanting") %>%
+  pivot_longer(-subjID, names_to = "belief", values_to = "type") %>%
+  janitor::tabyl(belief, type) %>%
+  janitor::adorn_totals("col") %>%
+  mutate(across(c(2, 3, 4), ~ round((.x / Total), 3)))
+
+stepping_beliefs
+```
+
+```{r stepping-beliefs-plot}
+stepping_beliefs_plot <-
+  stepping_beliefs %>%
+  pivot_longer(c(-belief, -Total), names_to = "type", values_to = "prop") %>%
+  mutate(
+    belief = factor(belief, levels = c("Liking", "Wanting", "Price")),
+    type = factor(type, levels = c("Less", "Neither", "More"))
+  ) %>%
+  ggplot(aes(x = type, y = prop)) +
+  geom_col(colour = "black") +
+  labs(title = "Beliefs About Effort", x = "Belief", y = "Proportion") +
+  coord_cartesian(ylim = c(0, 1)) +
+  facet_wrap(~belief) +
+  theme_evl()
+
+save_figure(stepping_beliefs_plot, "stepping_beliefs")
+```
+
+Within the liking condition, ratings should not depend on the stated
+effort–liking belief if the effect is not a naive-theory artifact.
+
+```{r stepping-beliefs-model}
+stepping_beliefs_model <- mixed(
+  rating ~ effort_level * rel_liking + (1 | subjID),
+  data = stepping_data[stepping_data$condition == "Liking", ],
+  method = "S", control = evl_lmer_control
+)
+
+nice(stepping_beliefs_model)
+```
+
+```{r stepping-beliefs-ratings-plot}
+effort_level_colours <- c(Low = "#704B00", Medium = "#A06D00", High = evl_colours[["Liking"]])
+effort_level_shapes <- c(Low = 16, Medium = 15, High = 17)
+
+stepping_beliefs_ratings_plot <- stepping_data %>%
+  filter(condition %in% "Liking") %>%
+  ggplot(aes(x = rel_liking, y = rating, group = effort_level, colour = effort_level)) +
+  stat_summary(
+    geom = "errorbar", fun.data = "mean_cl_normal",
+    width = 0.15, linewidth = 0.3, position = position_dodge(width = 0.5)
+  ) +
+  stat_summary(
+    aes(shape = effort_level),
+    geom = "point", fun = "mean", position = position_dodge(width = 0.5)
+  ) +
+  scale_colour_manual(values = effort_level_colours, name = "Effort Level") +
+  scale_shape_manual(values = effort_level_shapes, name = "Effort Level") +
+  labs(
+    title = "Effort-Liking Beliefs and Ratings of Liking",
+    x = "Liking Belief", y = "Mean Rating"
+  ) +
+  coord_cartesian(ylim = c(1, 5)) +
+  theme_evl(legend = "bottom")
+
+save_figure(stepping_beliefs_ratings_plot, "stepping_beliefs_liking")
+```
+
+## Rating Profiles
+
+Each participant's mean rating at high versus low effort classifies them as
+increasing or decreasing on their scale, and the proportions describe how
+general the effect is across people.
+
+```{r stepping-profiles}
+stepping_profiles <- derive_effort_profiles(stepping_data, id = "subjID")
+
+summarize_effort_profiles(stepping_profiles)
+```
+
+# Experiment 2: Observed Effort
+
+Participants watched another person perform the stepping effort at three
+levels and rated the collected artworks on a liking or a price scale (between
+subjects). If the dissociation requires performing the effort, the slopes
+should flatten here. If effort information suffices, they should mirror
+Experiment 1. Every participant who completed the session enters the analyses.
+
+```{r observed-data}
+observed_data <-
+  read_csv(here("experiments/observed/data/main.csv"), show_col_types = FALSE) %>%
+  set_effort_levels() %>%
+  mutate(
+    id = as.factor(id),
+    scale_type = factor(scale_type, levels = c("Liking", "Value"))
+  )
+
+n_observed <- n_distinct(observed_data$id)
+```
+
+The sample comprises `r n_observed` participants.
+
+```{r observed-sample}
+observed_data %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(id),
+    mean_age = mean(age), sd_age = sd(age),
+    n_male = n_distinct(id[gender == "Male"]),
+    n_female = n_distinct(id[gender == "Female"]),
+    n_other = n_distinct(id[gender == "Other"])
+  )
+```
+
+## Main Analysis
+
+One factorial model with rating scale and effort level as fixed effects and a
+random intercept per observer carries the dissociation in its interaction.
+
+```{r observed-omnibus}
+observed_omnibus <- mixed(
+  rating ~ effort_level * scale_type + (1 | id),
+  data = observed_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(observed_omnibus)
+```
+
+The effort slope of each scale, and their difference, come from the
+numeric-effort model.
+
+```{r observed-slopes}
+observed_trend <- mixed(
+  rating ~ effort_num * scale_type + (1 | id),
+  data = observed_data,
+  method = "S", control = evl_lmer_control, progress = FALSE
+)
+
+observed_slopes <- emtrends(observed_trend, ~scale_type, var = "effort_num", infer = TRUE)
+observed_slopes
+
+observed_slope_diffs <- pairs(observed_slopes, infer = TRUE, reverse = TRUE)
+observed_slope_diffs
+```
+
+::: {.callout-note title="Key result"}
+```{r observed-key-result}
+#| echo: false
+#| results: asis
+report_slopes(observed_slopes, observed_slope_diffs, labels = c(Value = "Price"))
+```
+:::
+
+```{r observed-plot}
+observed_means <- as.data.frame(emmeans(observed_omnibus, ~ effort_level * scale_type))
+
+observed_plot <-
+  observed_means %>%
+  mutate(scale_type = recode(scale_type, "Value" = "Price")) %>%
+  ggplot(aes(x = effort_level, y = emmean, group = scale_type, colour = scale_type)) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.15, linewidth = 0.3) +
+  geom_line() +
+  geom_point() +
+  scale_evl() +
+  scale_y_continuous(
+    sec.axis = sec_axis(~., labels = label_price)
+  ) +
+  labs(
+    title = "Ratings of Liking and Price",
+    subtitle = "Observed Effort",
+    x = "Effort Level", y = "Mean Rating"
+  ) +
+  coord_cartesian(ylim = c(1, 5)) +
+  facet_wrap(~scale_type) +
+  theme_evl()
+
+save_figure(observed_plot, "observed_ratings")
+```
+
+## Rating Profiles
+
+Each participant's mean rating at high versus low effort classifies them as
+increasing or decreasing on their scale.
+
+```{r observed-profiles}
+observed_profiles <- derive_effort_profiles(observed_data, groups = "scale_type")
+
+summarize_effort_profiles(observed_profiles, groups = "scale_type")
+```
+
+# Experiment 3: Within-Subjects Clicking
+
+Participants collected artworks with a clicking task at three effort levels
+and rated them on liking in one block and on price in the other, so each
+person supplies both judgments. The design, sample size, and exclusions were
+preregistered: the analyzed sample excludes participants who failed the
+attention check, whose summed clicking time exceeded the sample mean by more
+than 2.5 SD, or who did not complete the post-survey, and a skipped rating
+drops only its trial. The dissociation prediction is a negative liking slope
+and a positive price slope across effort.
+
+```{r clicking-within-data}
+clicking_within_post <-
+  read_csv(here("experiments/clicking_within/data/post.csv"), show_col_types = FALSE) %>%
+  mutate(id = as.factor(id))
+
+clicking_within_data <-
+  read_csv(here("experiments/clicking_within/data/main.csv"), show_col_types = FALSE) %>%
+  set_effort_levels() %>%
+  mutate(
+    id = as.factor(id),
+    condition = factor(condition, levels = c("Liking", "Value"))
+  )
+
+n_clicking_within <- n_distinct(clicking_within_data$id)
+```
+
+The analyzed sample comprises `r n_clicking_within` participants.
+
+```{r clicking-within-sample}
+clicking_within_data %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(id),
+    mean_age = mean(age), sd_age = sd(age),
+    n_male = n_distinct(id[gender == "Male"]),
+    n_female = n_distinct(id[gender == "Female"]),
+    n_other = n_distinct(id[gender == "Other"])
+  )
+```
+
+## Main Analysis
+
+One factorial model with judgment and effort level as within-subjects fixed
+effects and a random intercept per participant carries the dissociation in its
+interaction.
+
+```{r clicking-within-omnibus}
+clicking_within_omnibus <- mixed(
+  rating ~ effort_level * condition + (1 | id),
+  data = clicking_within_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(clicking_within_omnibus)
+```
+
+The effort slope of each judgment, and their difference, come from the
+numeric-effort model.
+
+```{r clicking-within-slopes}
+clicking_within_trend <- mixed(
+  rating ~ effort_num * condition + (1 | id),
+  data = clicking_within_data,
+  method = "S", control = evl_lmer_control, progress = FALSE
+)
+
+clicking_within_slopes <- emtrends(
+  clicking_within_trend, ~condition, var = "effort_num", infer = TRUE
+)
+clicking_within_slopes
+
+clicking_within_slope_diffs <- pairs(clicking_within_slopes, infer = TRUE, reverse = TRUE)
+clicking_within_slope_diffs
+```
+
+::: {.callout-note title="Key result"}
+```{r clicking-within-key-result}
+#| echo: false
+#| results: asis
+report_slopes(clicking_within_slopes, clicking_within_slope_diffs, labels = c(Value = "Price"))
+```
+:::
+
+```{r clicking-within-plot}
+clicking_within_means <- as.data.frame(
+  emmeans(clicking_within_omnibus, ~ effort_level * condition)
+)
+
+clicking_within_plot <-
+  clicking_within_means %>%
+  mutate(condition = recode(condition, "Value" = "Price")) %>%
+  ggplot(aes(x = effort_level, y = emmean, group = condition, colour = condition)) +
+  geom_errorbar(
+    aes(ymin = lower.CL, ymax = upper.CL),
+    width = 0.15, linewidth = 0.3
+  ) +
+  geom_line() +
+  geom_point() +
+  scale_evl() +
+  # The means and their intervals lie between 2 and 4, so the axis shows that window
+  scale_y_continuous(
+    breaks = seq(2, 4, 0.5), sec.axis = sec_axis(~., labels = label_price)
+  ) +
+  labs(
+    title = "Ratings of Liking and Price",
+    subtitle = "Within Subjects",
+    x = "Effort Level", y = "Mean Rating"
+  ) +
+  coord_cartesian(ylim = c(2, 4)) +
+  facet_wrap(~condition) +
+  theme_evl()
+
+save_figure(clicking_within_plot, "clicking_within_ratings")
+```
+
+## Time on Task
+
+The interaction should hold with clicking time in the model.
+
+```{r clicking-within-omnibus-time}
+clicking_within_omnibus_time <- mixed(
+  rating ~ effort_level * condition + effort_time + (1 | id),
+  data = clicking_within_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(clicking_within_omnibus_time)
+```
+
+Time on task should track effort level but not the judgment made on the trial,
+which varies within participants here.
+
+```{r clicking-within-duration}
+clicking_within_duration <- mixed(
+  effort_time ~ condition * effort_level + (1 | id),
+  data = clicking_within_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(clicking_within_duration)
+```
+
+## Beliefs
+
+Everyone rated on both scales, so the post-survey beliefs about how effort
+relates to liking and to value are summarized for the whole sample.
+
+```{r clicking-within-beliefs}
+clicking_within_beliefs <- belief_summary(clicking_within_post, group = NULL)
+
+clicking_within_beliefs
+```
+
+## Rating Profiles
+
+Each participant contributes a liking profile and a price profile, each the
+direction of their mean rating from low to high effort.
+
+```{r clicking-within-profiles}
+clicking_within_profiles <- derive_effort_profiles(clicking_within_data)
+
+summarize_effort_profiles(clicking_within_profiles)
+```
+
+Crossing each participant's liking profile with their price profile shows how
+many people carry the dissociation individually, as decreasing liking together
+with increasing price.
+
+```{r clicking-within-profiles-crossed}
+clicking_within_profile_counts <- crossed_profile_counts(clicking_within_profiles)
+
+clicking_within_profile_counts
+
+n_clicking_within_crossed <- sum(clicking_within_profile_counts$count)
+```
+
+The crossed counts cover the `r n_clicking_within_crossed` participants whose
+ratings moved on both scales.
+
+```{r clicking-within-profiles-crossed-plot}
+show_figure(
+  plot_crossed_profiles(clicking_within_profile_counts) +
+    labs(title = "Profiles for Liking vs. Price")
+)
+```
+
+# Experiment 4: Effort-Contingent Reveal
+
+Participants advanced a walker toward a goal by pressing a key and collected
+scrambled everyday objects whose presentation depended on the presses accepted
+during the walk. A press counts as accepted only if it follows the previous
+accepted press by at least the debounce interval, the shortest spacing at which
+two presses both count, so faster presses are counted but do not move the
+walker. Effort varied within participants at 30, 100, or 270 accepted presses,
+and participants rated every object on either liking or price (between
+subjects). These doses match the step counts of the laboratory stepping task
+rather than the press counts of the clicking studies, so press totals and
+durations here are not pooled with those studies. One collection used
+progressive reveal, in which the object resolved as accepted presses
+accumulated; a later collection, Experiment S7, revealed the object only once
+the required presses were complete (post-effort target reveal). Participants
+were not randomized between the two schedules, so each schedule is analyzed on
+its own and no schedule contrast is estimated. Within each schedule, the
+analyzed sample follows the preregistered exclusions, applied in data
+preparation: no matching completed post-survey, chance-level recognition
+memory (d′ ≤ 0), or summed walk time above the schedule mean by more than
+2.5 SD. Repeat completion and viewport width are recorded as diagnostics and
+do not alter inclusion. Because rating condition is between
+subjects, condition differences at single effort levels confound with scale
+anchoring, and the dissociation test is the difference between the price and
+liking effort slopes.
+
+```{r reveal-data}
+reveal_all_data <-
+  read_csv(here("experiments/reveal/data/main.csv"),
+           col_types = cols(id = col_character(), .default = col_guess())) %>%
+  set_effort_levels() %>%
+  mutate(
+    id = as.factor(id),
+    img = as.factor(img),
+    condition = factor(condition, levels = c("Liking", "Value"))
+  )
+
+# Every completed session, the frame the exclusion flow starts from
+reveal_all_complete <-
+  read_csv(here("experiments/reveal/data/main_complete.csv"),
+           col_types = cols(id = col_character(), .default = col_guess())) %>%
+  set_effort_levels() %>%
+  mutate(
+    id = as.factor(id),
+    condition = factor(condition, levels = c("Liking", "Value"))
+  )
+
+reveal_all_memory <-
+  read_csv(here("experiments/reveal/data/memory.csv"),
+           col_types = cols(id = col_character(), .default = col_guess())) %>%
+  mutate(
+    id = as.factor(id),
+    condition = factor(condition, levels = c("Liking", "Value"))
+  )
+
+reveal_data <- filter(reveal_all_data, reveal_assignment == "progressive")
+reveal_complete <- filter(reveal_all_complete, reveal_assignment == "progressive")
+reveal_memory <- filter(reveal_all_memory, reveal_assignment == "progressive")
+
+reveal_endpoint_data <- filter(reveal_all_data, reveal_assignment == "endpoint")
+reveal_endpoint_complete <- filter(reveal_all_complete, reveal_assignment == "endpoint")
+reveal_endpoint_memory <- filter(reveal_all_memory, reveal_assignment == "endpoint")
+
+n_reveal <- n_distinct(reveal_data$id)
+n_reveal_complete <- n_distinct(reveal_complete$id)
+n_reveal_endpoint <- n_distinct(reveal_endpoint_data$id)
+n_reveal_endpoint_complete <- n_distinct(reveal_endpoint_complete$id)
+```
+
+## Progressive Reveal
+
+Of `r n_reveal_complete` participants who completed the task, `r n_reveal`
+remain after the preregistered exclusions and form the analytic sample.
+
+```{r reveal-sample}
+reveal_data %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(id),
+    mean_age = mean(age, na.rm = TRUE),
+    sd_age = sd(age, na.rm = TRUE),
+    n_male = n_distinct(id[gender == "Male"]),
+    n_female = n_distinct(id[gender == "Female"]),
+    n_other = n_distinct(id[!gender %in% c("Male", "Female")]),
+    n_liking = n_distinct(id[condition == "Liking"]),
+    n_value = n_distinct(id[condition == "Value"])
+  )
+```
+
+The exclusion flow, with the d′ and walk-time exclusions counted among the
+participants with a completed post-survey (one participant can meet both), and
+the diagnostics that are recorded but not applied:
+
+```{r reveal-exclusions}
+reveal_complete %>%
+  distinct(id, has_post_survey, memory_pass, time_outlier_linked,
+           primary_included, repeat_complete, viewport_width) %>%
+  summarize(
+    n_complete_sessions = n(),
+    n_no_post_survey = sum(!has_post_survey),
+    n_dprime_at_or_below_zero = sum(!memory_pass[has_post_survey]),
+    n_time_outliers = sum(time_outlier_linked[has_post_survey]),
+    n_analyzed = sum(primary_included),
+    n_viewport_below_940 = sum(viewport_width[primary_included] < 940),
+    n_repeat_completers = sum(repeat_complete[primary_included])
+  )
+```
+
+### Memory Check
+
+A recognition test on the collected objects shows whether participants
+attended to what they collected, summarized by the sensitivity index d′.
+
+```{r reveal-memory}
+memory_summary(reveal_memory)
+```
+
+### Effort Manipulation Check
+
+The walk is self-paced, so realized duration reflects both the assigned dose
+and the participant's press rate, and the rejected-press proportion shows how
+often the debounce interval bound.
+
+```{r reveal-manipulation}
+reveal_duration <- mixed(
+  effort_trial_duration ~ effort_level + (1 | id),
+  data = reveal_data,
+  method = "S", control = evl_lmer_control
+)
+nice(reveal_duration)
+
+emmeans(reveal_duration, ~effort_level, infer = TRUE)
+
+# Press mechanics and off-task focus loss across effort levels
+reveal_data %>%
+  mutate(accepted_press_rate = steps_required / effort_trial_duration) %>%
+  group_by(effort_level) %>%
+  summarize(
+    accepted_presses = first(steps_required),
+    duration_median_s = median(effort_trial_duration),
+    accepted_rate_median_per_s = median(accepted_press_rate),
+    rejected_press_proportion =
+      sum(presses_rejected) / sum(steps_required + presses_rejected),
+    focus_loss_trial_proportion = mean(walk_focus_lost > 0),
+    .groups = "drop"
+  )
+```
+
+### Main Analysis
+
+One factorial model with effort level and rating condition as fixed effects and
+a random intercept per participant carries the dissociation in its interaction.
+
+```{r reveal-omnibus}
+reveal_omnibus <- mixed(
+  rating ~ effort_level * condition + (1 | id),
+  data = reveal_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(reveal_omnibus)
+```
+
+The effort slope of each judgment, and their difference, come from the
+numeric-effort model.
+
+```{r reveal-slopes}
+reveal_trend <- mixed(
+  rating ~ effort_num * condition + (1 | id),
+  data = reveal_data,
+  method = "S", control = evl_lmer_control, progress = FALSE
+)
+
+reveal_slopes <- emtrends(reveal_trend, ~condition, var = "effort_num", infer = TRUE)
+reveal_slopes
+
+reveal_slope_diffs <- pairs(reveal_slopes, infer = TRUE, reverse = TRUE)
+reveal_slope_diffs
+```
+
+::: {.callout-note title="Key result"}
+```{r reveal-key-result}
+#| echo: false
+#| results: asis
+report_slopes(reveal_slopes, reveal_slope_diffs, labels = c(Value = "Price"))
+```
+:::
+
+```{r reveal-plot}
+reveal_means <- as.data.frame(emmeans(reveal_omnibus, ~ effort_level * condition))
+
+reveal_plot <-
+  reveal_means %>%
+  mutate(condition = recode(condition, "Value" = "Price")) %>%
+  ggplot(aes(x = effort_level, y = emmean, group = condition, colour = condition)) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.15, linewidth = 0.3) +
+  geom_line() +
+  geom_point() +
+  scale_evl() +
+  scale_y_continuous(
+    sec.axis = sec_axis(~., labels = label_price)
+  ) +
+  labs(
+    title = "Ratings of Liking and Price",
+    subtitle = "Progressive Reveal",
+    x = "Effort Level", y = "Mean Rating"
+  ) +
+  coord_cartesian(ylim = c(1, 5)) +
+  facet_wrap(~condition) +
+  theme_evl()
+
+save_figure(reveal_plot, "reveal_ratings")
+```
+
+### Time on Task
+
+The interaction should hold with walk duration in the model.
+
+```{r reveal-omnibus-time}
+reveal_omnibus_time <- mixed(
+  rating ~ effort_level * condition + effort_trial_duration + (1 | id),
+  data = reveal_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(reveal_omnibus_time)
+```
+
+Time on task should track effort level but not the judgment participants were
+assigned to make.
+
+```{r reveal-duration-by-condition}
+reveal_duration_by_condition <- mixed(
+  effort_trial_duration ~ effort_level * condition + (1 | id),
+  data = reveal_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(reveal_duration_by_condition)
+```
+
+### Robustness: Maximal Random-Effects Structure
+
+Effort varies within participants and objects are crossed with participants, so
+the dissociation is refit with by-participant effort slopes and a crossed object
+intercept, as a sensitivity check on the random-intercept model above.
+
+```{r reveal-maximal}
+reveal_trend_maximal <- mixed(
+  rating ~ effort_num * condition + (effort_num | id) + (1 | img),
+  data = reveal_data,
+  method = "S", control = evl_lmer_control, progress = FALSE
+)
+
+nice(reveal_trend_maximal)
+pairs(emtrends(reveal_trend_maximal, ~condition, var = "effort_num"), infer = TRUE, reverse = TRUE)
+```
+
+### Beliefs
+
+Post-survey beliefs about how effort relates to liking and to value, pooled
+over rating condition.
+
+```{r reveal-beliefs}
+belief_summary(reveal_data, group = NULL)
+```
+
+### Presentation Appraisals
+
+Post-survey items asked whether the presses were experienced as instrumental,
+necessary, and purposeful, on ordinal 1–5 scales.
+
+```{r reveal-appraisals}
+reveal_appraisals <-
+  reveal_data %>%
+  distinct(id, instrumental_task, necessary_effort, actions_purpose) %>%
+  pivot_longer(
+    c(instrumental_task, necessary_effort, actions_purpose),
+    names_to = "appraisal",
+    values_to = "response"
+  ) %>%
+  mutate(
+    appraisal = factor(
+      appraisal,
+      levels = c("instrumental_task", "necessary_effort", "actions_purpose"),
+      labels = c("Effort Led to Objects", "Effort Was Necessary",
+                 "Actions Served a Purpose")
+    )
+  )
+
+reveal_appraisals %>%
+  group_by(appraisal) %>%
+  summarize(n = n(), mean = mean(response), sd = sd(response), .groups = "drop")
+
+reveal_appraisals_plot <- reveal_appraisals %>%
+  count(appraisal, response) %>%
+  group_by(appraisal) %>%
+  mutate(proportion = n / sum(n)) %>%
+  ungroup() %>%
+  ggplot(aes(x = factor(response, levels = 1:5), y = proportion)) +
+  geom_col(colour = "black") +
+  facet_wrap(~appraisal, nrow = 1) +
+  labs(
+    title = "Post-Task Presentation Appraisals",
+    x = "Response (1 = Low, 5 = High)", y = "Proportion"
+  ) +
+  theme_evl()
+
+show_figure(reveal_appraisals_plot)
+```
+
+### Rating Profiles
+
+Each participant's mean rating at high versus low effort classifies them as
+increasing or decreasing.
+
+```{r reveal-profiles}
+reveal_profiles <- derive_effort_profiles(reveal_data)
+
+summarize_effort_profiles(reveal_profiles)
+```
+
+## Experiment S7: Post-Effort Target Reveal
+
+Experiment S7 keeps the object scrambled throughout the walk and
+reveals it on arrival. Of `r n_reveal_endpoint_complete` participants who
+completed the task, `r n_reveal_endpoint` remain after the preregistered
+exclusions and form the analytic sample, which is analyzed on its own.
+
+```{r reveal-endpoint-sample}
+reveal_endpoint_data %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(id),
+    mean_age = mean(age, na.rm = TRUE),
+    sd_age = sd(age, na.rm = TRUE),
+    n_male = n_distinct(id[gender == "Male"]),
+    n_female = n_distinct(id[gender == "Female"]),
+    n_other = n_distinct(id[!gender %in% c("Male", "Female")]),
+    n_liking = n_distinct(id[condition == "Liking"]),
+    n_value = n_distinct(id[condition == "Value"])
+  )
+
+reveal_endpoint_complete %>%
+  distinct(id, has_post_survey, memory_pass, time_outlier_linked,
+           primary_included, repeat_complete, viewport_width) %>%
+  summarize(
+    n_complete_sessions = n(),
+    n_no_post_survey = sum(!has_post_survey),
+    n_dprime_at_or_below_zero = sum(!memory_pass[has_post_survey]),
+    n_time_outliers = sum(time_outlier_linked[has_post_survey]),
+    n_analyzed = sum(primary_included),
+    n_viewport_below_940 = sum(viewport_width[primary_included] < 940),
+    n_repeat_completers = sum(repeat_complete[primary_included])
+  )
+```
+
+### Memory Check
+
+The recognition test summarized by d′, as in Experiment 4.
+
+```{r reveal-endpoint-memory}
+memory_summary(reveal_endpoint_memory)
+```
+
+### Effort Manipulation Check
+
+Walk duration by effort level, press mechanics, and focus loss, as in
+Experiment 4.
+
+```{r reveal-endpoint-manipulation}
+reveal_endpoint_duration <- mixed(
+  effort_trial_duration ~ effort_level + (1 | id),
+  data = reveal_endpoint_data,
+  method = "S", control = evl_lmer_control
+)
+nice(reveal_endpoint_duration)
+
+reveal_endpoint_data %>%
+  mutate(accepted_press_rate = steps_required / effort_trial_duration) %>%
+  group_by(effort_level) %>%
+  summarize(
+    accepted_presses = first(steps_required),
+    duration_median_s = median(effort_trial_duration),
+    accepted_rate_median_per_s = median(accepted_press_rate),
+    rejected_press_proportion =
+      sum(presses_rejected) / sum(steps_required + presses_rejected),
+    focus_loss_trial_proportion = mean(walk_focus_lost > 0),
+    .groups = "drop"
+  )
+```
+
+### Main Analysis
+
+One factorial model with effort level and rating condition as fixed effects and
+a random intercept per participant carries the dissociation in its interaction,
+and the numeric-effort model gives the slope of each judgment and their
+difference.
+
+```{r reveal-endpoint-omnibus}
+reveal_endpoint_omnibus <- mixed(
+  rating ~ effort_level * condition + (1 | id),
+  data = reveal_endpoint_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(reveal_endpoint_omnibus)
+```
+
+```{r reveal-endpoint-slopes}
+reveal_endpoint_trend <- mixed(
+  rating ~ effort_num * condition + (1 | id),
+  data = reveal_endpoint_data,
+  method = "S", control = evl_lmer_control, progress = FALSE
+)
+
+reveal_endpoint_slopes <-
+  emtrends(reveal_endpoint_trend, ~condition, var = "effort_num", infer = TRUE)
+reveal_endpoint_slopes
+
+reveal_endpoint_slope_diffs <- pairs(reveal_endpoint_slopes, infer = TRUE, reverse = TRUE)
+reveal_endpoint_slope_diffs
+```
+
+::: {.callout-note title="Key result"}
+```{r reveal-endpoint-key-result}
+#| echo: false
+#| results: asis
+report_slopes(reveal_endpoint_slopes, reveal_endpoint_slope_diffs, labels = c(Value = "Price"))
+```
+:::
+
+```{r reveal-endpoint-plot}
+reveal_endpoint_means <- as.data.frame(
+  emmeans(reveal_endpoint_omnibus, ~ effort_level * condition)
+)
+
+reveal_endpoint_plot <-
+  reveal_endpoint_means %>%
+  mutate(condition = recode(condition, "Value" = "Price")) %>%
+  ggplot(aes(x = effort_level, y = emmean, group = condition, colour = condition)) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.15, linewidth = 0.3) +
+  geom_line() +
+  geom_point() +
+  scale_evl() +
+  scale_y_continuous(
+    sec.axis = sec_axis(~., labels = label_price)
+  ) +
+  labs(
+    title = "Ratings of Liking and Price",
+    subtitle = "Post-Effort Target Reveal",
+    x = "Effort Level", y = "Mean Rating"
+  ) +
+  coord_cartesian(ylim = c(1, 5)) +
+  facet_wrap(~condition) +
+  theme_evl()
+
+save_figure(reveal_endpoint_plot, "reveal_endpoint_ratings")
+```
+
+### Time on Task
+
+The interaction should hold with walk duration in the model, and time on task
+should track effort level but not the assigned judgment.
+
+```{r reveal-endpoint-omnibus-time}
+reveal_endpoint_omnibus_time <- mixed(
+  rating ~ effort_level * condition + effort_trial_duration + (1 | id),
+  data = reveal_endpoint_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(reveal_endpoint_omnibus_time)
+```
+
+```{r reveal-endpoint-duration-by-condition}
+reveal_endpoint_duration_by_condition <- mixed(
+  effort_trial_duration ~ effort_level * condition + (1 | id),
+  data = reveal_endpoint_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(reveal_endpoint_duration_by_condition)
+```
+
+### Robustness: Maximal Random-Effects Structure
+
+The same refit with by-participant effort slopes and a crossed object intercept
+as in Experiment 4.
+
+```{r reveal-endpoint-maximal}
+reveal_endpoint_trend_maximal <- mixed(
+  rating ~ effort_num * condition + (effort_num | id) + (1 | img),
+  data = reveal_endpoint_data,
+  method = "S", control = evl_lmer_control, progress = FALSE
+)
+
+nice(reveal_endpoint_trend_maximal)
+pairs(emtrends(reveal_endpoint_trend_maximal, ~condition, var = "effort_num"),
+      infer = TRUE, reverse = TRUE)
+```
+
+### Presentation Appraisals
+
+The same three post-survey appraisals as in Experiment 4.
+
+```{r reveal-endpoint-appraisals}
+reveal_endpoint_data %>%
+  distinct(id, instrumental_task, necessary_effort, actions_purpose) %>%
+  pivot_longer(
+    c(instrumental_task, necessary_effort, actions_purpose),
+    names_to = "appraisal",
+    values_to = "response"
+  ) %>%
+  group_by(appraisal) %>%
+  summarize(n = n(), mean = mean(response), sd = sd(response), .groups = "drop")
+```
+
+### Rating Profiles
+
+Each participant's mean rating at high versus low effort classifies them as
+increasing or decreasing.
+
+```{r reveal-endpoint-profiles}
+reveal_endpoint_profiles <- derive_effort_profiles(reveal_endpoint_data)
+
+summarize_effort_profiles(reveal_endpoint_profiles)
+```
+
+# Experiment 5: Cognitive Effort
+
+One experiment with two between-subjects task arms replaces physical with
+cognitive effort: letter transposition (Cogletters; shift each letter forward
+in the alphabet by 1, 3, or 7 positions) and serial subtraction (Subtract-N;
+count down by 1, 3, or 7). Rating condition (liking versus price) is between
+subjects within each arm, and participants were randomly assigned to arm and
+condition. The analyzed sample excludes participants without a completed
+post-survey, with chance-level recognition memory (d′ ≤ 0), or whose summed
+effort time exceeded the task mean by more than 2.5 SD, the preregistered
+total-time rule. The effort levels index ordered task difficulty, so slopes
+read as change per difficulty step.
+
+```{r cognitive-data}
+cogletters_data <-
+  read_csv(here("experiments/cognitive/data/cogletters.csv"), show_col_types = FALSE) %>%
+  set_effort_levels() %>%
+  mutate(
+    id = as.factor(id),
+    condition = factor(condition, levels = c("Liking", "Value"))
+  )
+
+subtractn_data <-
+  read_csv(here("experiments/cognitive/data/subtractn.csv"), show_col_types = FALSE) %>%
+  set_effort_levels() %>%
+  mutate(
+    id = as.factor(id),
+    condition = factor(condition, levels = c("Liking", "Value"))
+  )
+
+cognitive_memory <-
+  read_csv(here("experiments/cognitive/data/memory.csv"), show_col_types = FALSE) %>%
+  mutate(
+    id = as.factor(id),
+    condition = factor(condition, levels = c("Liking", "Value"))
+  )
+
+n_cogletters <- n_distinct(cogletters_data$id)
+n_subtractn <- n_distinct(subtractn_data$id)
+```
+
+## Letter Transposition
+
+The letter-transposition arm comprises `r n_cogletters` participants.
+
+```{r cogletters-sample}
+cogletters_data %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(id),
+    mean_age = mean(age, na.rm = TRUE),
+    sd_age = sd(age, na.rm = TRUE),
+    n_male = n_distinct(id[gender == "Male"]),
+    n_female = n_distinct(id[gender == "Female"]),
+    n_other = n_distinct(id[!gender %in% c("Male", "Female")]),
+    n_liking = n_distinct(id[condition == "Liking"]),
+    n_value = n_distinct(id[condition == "Value"])
+  )
+```
+
+### Memory Check
+
+The recognition test on the collected objects, summarized by the sensitivity
+index d′.
+
+```{r cogletters-memory}
+memory_summary(filter(cognitive_memory, id %in% unique(cogletters_data$id)))
+```
+
+### Effort Manipulation Check
+
+The cipher offset should produce a difficulty gradient in transcription errors
+and in time on task.
+
+```{r cogletters-manipulation}
+cogletters_errors <- mixed(
+  effort_mismatches ~ effort_level + (1 | id),
+  data = cogletters_data,
+  method = "S", control = evl_lmer_control
+)
+nice(cogletters_errors)
+emmeans(cogletters_errors, ~effort_level, infer = TRUE)
+
+cogletters_duration <- mixed(
+  effort_trial_duration ~ effort_level + (1 | id),
+  data = cogletters_data,
+  method = "S", control = evl_lmer_control
+)
+nice(cogletters_duration)
+```
+
+### Main Analysis
+
+One factorial model with effort level and rating condition as fixed effects and
+a random intercept per participant carries the dissociation in its interaction,
+and the numeric-effort model gives the slope of each judgment and their
+difference.
+
+```{r cogletters-omnibus}
+cogletters_omnibus <- mixed(
+  rating ~ effort_level * condition + (1 | id),
+  data = cogletters_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(cogletters_omnibus)
+```
+
+```{r cogletters-slopes}
+cogletters_trend <- mixed(
+  rating ~ effort_num * condition + (1 | id),
+  data = cogletters_data,
+  method = "S", control = evl_lmer_control, progress = FALSE
+)
+
+cogletters_slopes <- emtrends(cogletters_trend, ~condition, var = "effort_num", infer = TRUE)
+cogletters_slopes
+
+cogletters_slope_diffs <- pairs(cogletters_slopes, infer = TRUE, reverse = TRUE)
+cogletters_slope_diffs
+```
+
+::: {.callout-note title="Key result"}
+```{r cogletters-key-result}
+#| echo: false
+#| results: asis
+report_slopes(cogletters_slopes, cogletters_slope_diffs, labels = c(Value = "Price"))
+```
+:::
+
+### Moderation by Task Load
+
+The post-task NASA-TLX score enters as a continuous moderator of the
+dissociation.
+
+```{r cogletters-task-load}
+cogletters_task_load <- mixed(
+  rating ~ effort_num * condition * scale(nasa_tlx) + (1 | id),
+  data = cogletters_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(cogletters_task_load)
+```
+
+## Serial Subtraction
+
+The serial-subtraction arm comprises `r n_subtractn` participants.
+
+```{r subtractn-sample}
+subtractn_data %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(id),
+    mean_age = mean(age, na.rm = TRUE),
+    sd_age = sd(age, na.rm = TRUE),
+    n_male = n_distinct(id[gender == "Male"]),
+    n_female = n_distinct(id[gender == "Female"]),
+    n_other = n_distinct(id[!gender %in% c("Male", "Female")]),
+    n_liking = n_distinct(id[condition == "Liking"]),
+    n_value = n_distinct(id[condition == "Value"])
+  )
+```
+
+### Memory Check
+
+The recognition test summarized by d′, as in the letter-transposition arm.
+
+```{r subtractn-memory}
+memory_summary(filter(cognitive_memory, id %in% unique(subtractn_data$id)))
+```
+
+### Effort Manipulation Check
+
+The subtraction step should produce a difficulty gradient in incorrect
+attempts and in time on task.
+
+```{r subtractn-manipulation}
+subtractn_errors <- mixed(
+  effort_incorrect_attempts ~ effort_level + (1 | id),
+  data = subtractn_data,
+  method = "S", control = evl_lmer_control
+)
+nice(subtractn_errors)
+emmeans(subtractn_errors, ~effort_level, infer = TRUE)
+
+subtractn_duration <- mixed(
+  effort_trial_duration ~ effort_level + (1 | id),
+  data = subtractn_data,
+  method = "S", control = evl_lmer_control
+)
+nice(subtractn_duration)
+```
+
+### Main Analysis
+
+The same factorial and numeric-effort models as in the letter-transposition
+arm.
+
+```{r subtractn-omnibus}
+subtractn_omnibus <- mixed(
+  rating ~ effort_level * condition + (1 | id),
+  data = subtractn_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(subtractn_omnibus)
+```
+
+```{r subtractn-slopes}
+subtractn_trend <- mixed(
+  rating ~ effort_num * condition + (1 | id),
+  data = subtractn_data,
+  method = "S", control = evl_lmer_control, progress = FALSE
+)
+
+subtractn_slopes <- emtrends(subtractn_trend, ~condition, var = "effort_num", infer = TRUE)
+subtractn_slopes
+
+subtractn_slope_diffs <- pairs(subtractn_slopes, infer = TRUE, reverse = TRUE)
+subtractn_slope_diffs
+```
+
+::: {.callout-note title="Key result"}
+```{r subtractn-key-result}
+#| echo: false
+#| results: asis
+report_slopes(subtractn_slopes, subtractn_slope_diffs, labels = c(Value = "Price"))
+```
+:::
+
+### Moderation by Task Load
+
+The post-task NASA-TLX score enters as a continuous moderator, and the effort
+slopes at lower and higher task load (the mean minus and plus one SD) show
+where the dissociation appears.
+
+```{r subtractn-task-load}
+subtractn_task_load <- mixed(
+  rating ~ effort_num * condition * scale(nasa_tlx) + (1 | id),
+  data = subtractn_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(subtractn_task_load)
+
+subtractn_task_load_mean <- mean(subtractn_data$nasa_tlx)
+subtractn_task_load_sd <- sd(subtractn_data$nasa_tlx)
+subtractn_task_load_levels <- subtractn_task_load_mean + c(-1, 1) * subtractn_task_load_sd
+
+emtrends(
+  subtractn_task_load,
+  pairwise ~ condition | nasa_tlx,
+  var = "effort_num",
+  at = list(nasa_tlx = subtractn_task_load_levels),
+  infer = TRUE
+)
+
+# the slopes at higher task load (+1 SD), carried into the summary
+subtractn_high_load_slopes <- emtrends(
+  subtractn_task_load, ~condition, var = "effort_num",
+  at = list(nasa_tlx = subtractn_task_load_levels[2]), infer = TRUE
+)
+subtractn_high_load_slope_diffs <- pairs(subtractn_high_load_slopes, infer = TRUE, reverse = TRUE)
+```
+
+```{r subtractn-task-load-plot}
+subtractn_task_load_means <- emmeans(
+  subtractn_task_load,
+  ~ effort_num | condition * nasa_tlx,
+  at = list(effort_num = 1:3, nasa_tlx = subtractn_task_load_levels),
+  infer = TRUE
+)
+
+subtractn_task_load_plot <-
+  as.data.frame(subtractn_task_load_means) %>%
+  mutate(
+    condition = recode(condition, "Value" = "Price"),
+    effort_level = factor(effort_num, levels = 1:3, labels = effort_levels),
+    tlx_level = factor(
+      nasa_tlx, levels = subtractn_task_load_levels,
+      labels = c("Lower Task Load (-1 SD)", "Higher Task Load (+1 SD)")
+    )
+  ) %>%
+  ggplot(aes(x = effort_level, y = emmean, group = condition, colour = condition)) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.15, linewidth = 0.3) +
+  geom_line() +
+  geom_point() +
+  scale_evl() +
+  scale_y_continuous(
+    sec.axis = sec_axis(~., labels = label_price)
+  ) +
+  labs(
+    title = "Ratings of Liking and Price by Task Load",
+    subtitle = "Serial Subtraction",
+    x = "Effort Level", y = "Mean Rating"
+  ) +
+  coord_cartesian(ylim = c(1, 5)) +
+  ggh4x::facet_nested_wrap(vars(tlx_level, condition), nrow = 2, axes = "x") +
+  theme_evl()
+
+save_figure(subtractn_task_load_plot, "cognitive_subtractn_task_load")
+```
+
+## Both Tasks
+
+Both arms belong to a single experiment with random between-subjects
+assignment to effort task, and the participant samples do not overlap, so the
+arms pool with task as a between-subjects factor. Raw error counts differ by
+task mechanics, so the proportion of erroneous responses per trial is the
+commensurable error measure.
+
+```{r cognitive-combined-data}
+cognitive_data <-
+  bind_rows(
+    cogletters_data %>%
+      mutate(effort_error_prop = effort_mismatches / (effort_matches + effort_mismatches)),
+    subtractn_data %>%
+      mutate(effort_error_prop = effort_incorrect_attempts / effort_total_attempts)
+  ) %>%
+  select(
+    id, trial, condition, effort_task, effort_level, effort_num,
+    rating, effort_error_prop, effort_trial_duration, nasa_tlx
+  ) %>%
+  mutate(
+    id = factor(id),
+    effort_task = factor(
+      effort_task,
+      levels = c("cogletters", "subtractn"),
+      labels = c("Cogletters", "Subtract-N")
+    )
+  )
+```
+
+```{r cognitive-combined-n}
+cognitive_data %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  count(effort_task, condition) %>%
+  pivot_wider(names_from = condition, values_from = n)
+```
+
+### Main Analysis
+
+The pooled model averages over the task arms, and the task-adjusted test
+follows.
+
+```{r cognitive-omnibus}
+cognitive_omnibus <- mixed(
+  rating ~ effort_level * condition + (1 | id),
+  data = cognitive_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(cognitive_omnibus)
+```
+
+```{r cognitive-slopes}
+cognitive_trend <- mixed(
+  rating ~ effort_num * condition + (1 | id),
+  data = cognitive_data,
+  method = "S", control = evl_lmer_control, progress = FALSE
+)
+
+cognitive_slopes <- emtrends(cognitive_trend, ~condition, var = "effort_num", infer = TRUE)
+cognitive_slopes
+
+cognitive_slope_diffs <- pairs(cognitive_slopes, infer = TRUE, reverse = TRUE)
+cognitive_slope_diffs
+```
+
+::: {.callout-note title="Key result"}
+```{r cognitive-key-result}
+#| echo: false
+#| results: asis
+report_slopes(cognitive_slopes, cognitive_slope_diffs, labels = c(Value = "Price"))
+```
+:::
+
+The experiment's figure shows the pooled model's means, averaged over the two
+task arms; the task-by-task panels follow below.
+
+```{r cognitive-pooled-plot}
+cognitive_means <- as.data.frame(emmeans(cognitive_omnibus, ~ effort_level * condition))
+
+cognitive_pooled_plot <-
+  cognitive_means %>%
+  mutate(condition = recode(condition, "Value" = "Price")) %>%
+  ggplot(aes(x = effort_level, y = emmean, group = condition, colour = condition)) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.15, linewidth = 0.3) +
+  geom_line() +
+  geom_point() +
+  scale_evl() +
+  # The means and their intervals lie between 2 and 4, so the axis shows that window
+  scale_y_continuous(
+    breaks = seq(2, 4, 0.5), sec.axis = sec_axis(~., labels = label_price)
+  ) +
+  labs(
+    title = "Ratings of Liking and Price",
+    subtitle = "Cognitive Effort, Both Tasks",
+    x = "Effort Level", y = "Mean Rating"
+  ) +
+  coord_cartesian(ylim = c(2, 4)) +
+  facet_wrap(~condition) +
+  theme_evl()
+
+save_figure(cognitive_pooled_plot, "cognitive_pooled_ratings")
+```
+
+Task type enters as a third factor to test whether the dissociation differs
+between the two arms.
+
+```{r cognitive-task-omnibus}
+cognitive_task_omnibus <- mixed(
+  rating ~ effort_level * condition * effort_task + (1 | id),
+  data = cognitive_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(cognitive_task_omnibus)
+```
+
+```{r cognitive-by-task-plot}
+cognitive_task_means <- as.data.frame(
+  emmeans(cognitive_task_omnibus, ~ effort_level * condition * effort_task)
+)
+
+cognitive_by_task_plot <-
+  cognitive_task_means %>%
+  mutate(
+    condition = recode(condition, "Value" = "Price"),
+    effort_task = recode(effort_task, "Cogletters" = "Letter Transposition",
+                         "Subtract-N" = "Serial Subtraction")
+  ) %>%
+  ggplot(aes(x = effort_level, y = emmean, group = condition, colour = condition)) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.15, linewidth = 0.3) +
+  geom_line() +
+  geom_point() +
+  scale_evl() +
+  scale_y_continuous(
+    sec.axis = sec_axis(~., labels = label_price)
+  ) +
+  labs(
+    title = "Ratings of Liking and Price",
+    subtitle = "Cognitive Effort by Task",
+    x = "Effort Level", y = "Mean Rating"
+  ) +
+  coord_cartesian(ylim = c(1, 5)) +
+  ggh4x::facet_nested_wrap(vars(effort_task, condition), nrow = 2, axes = "x") +
+  theme_evl()
+
+save_figure(cognitive_by_task_plot, "cognitive_ratings_by_task")
+```
+
+The dissociation takes a different route in each task: in letter transposition
+it holds across participants, and in serial subtraction only among
+participants who found the task demanding (Serial Subtraction, Moderation by
+Task Load).
+
+### Time on Task
+
+The task-adjusted interaction should hold with time on task in the model.
+
+```{r cognitive-omnibus-time}
+cognitive_omnibus_time <- mixed(
+  rating ~ effort_level * condition * effort_task + effort_trial_duration + (1 | id),
+  data = cognitive_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(cognitive_omnibus_time)
+```
+
+Time on task should track effort level and task, but not the judgment
+participants were assigned to make.
+
+```{r cognitive-duration-by-condition}
+cognitive_duration_by_condition <- mixed(
+  effort_trial_duration ~ effort_level * condition * effort_task + (1 | id),
+  data = cognitive_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(cognitive_duration_by_condition)
+```
+
+### Task Comparison
+
+Assignment to task was random, so the tasks can be compared on the post-task
+NASA-TLX score, on time on task, and on the error proportion.
+
+```{r cognitive-task-load-comparison}
+cognitive_participants <-
+  cognitive_data %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup()
+
+cognitive_participants %>%
+  group_by(effort_task) %>%
+  summarize(n = n(), mean_tlx = mean(nasa_tlx), sd_tlx = sd(nasa_tlx))
+
+t.test(nasa_tlx ~ effort_task, data = cognitive_participants)
+```
+
+Duration partly reflects task mechanics, so it is read alongside the NASA-TLX
+comparison.
+
+```{r cognitive-duration-comparison}
+cognitive_task_duration <- mixed(
+  effort_trial_duration ~ effort_level * effort_task + (1 | id),
+  data = cognitive_data,
+  method = "S", control = evl_lmer_control
+)
+nice(cognitive_task_duration)
+
+emmeans(cognitive_task_duration, ~ effort_task | effort_level, infer = TRUE)
+```
+
+```{r cognitive-error-comparison}
+cognitive_task_errors <- mixed(
+  effort_error_prop ~ effort_level * effort_task + (1 | id),
+  data = cognitive_data,
+  method = "S", control = evl_lmer_control
+)
+nice(cognitive_task_errors)
+
+emmeans(cognitive_task_errors, ~effort_task, infer = TRUE)
+```
+
+### Beliefs
+
+Post-survey beliefs about how effort relates to liking and to value, pooled
+over task and rating condition.
+
+```{r cognitive-beliefs}
+belief_summary(bind_rows(cogletters_data, subtractn_data), group = NULL)
+```
+
+### Rating Profiles
+
+Each participant did one task in one rating condition, so profiles pool across
+the two tasks by condition.
+
+```{r cognitive-profiles}
+cognitive_profiles <- derive_effort_profiles(cognitive_data)
+
+summarize_effort_profiles(cognitive_profiles)
+```
+
+# Experiment 6A: Buying and Selling Prices, Between Subjects
+
+Participants performed the stepping effort to access artworks and then stated
+a price as either buyers or sellers (between subjects), choosing among five
+amounts from \$0.10 to \$1.00. The questions are whether effort raises prices
+and whether the buyer–seller gap (the endowment pattern) depends on effort.
+Every participant who completed the session enters the analyses.
+
+```{r prices-between-data}
+prices_between_data <-
+  read_csv(here("experiments/prices_between/data/main.csv"), show_col_types = FALSE) %>%
+  set_effort_levels() %>%
+  mutate(
+    id = factor(id),
+    condition = factor(condition, levels = c("Buy", "Sell"))
+  )
+
+n_prices_between <- n_distinct(prices_between_data$id)
+```
+
+The sample comprises `r n_prices_between` participants.
+
+```{r prices-between-sample}
+prices_between_data %>%
+  group_by(condition) %>%
+  summarize(n = n_distinct(id))
+```
+
+## Main Analysis
+
+One factorial model with role and effort level as fixed effects and a random
+intercept per participant carries the effort-by-role question in its
+interaction.
+
+```{r prices-between-omnibus}
+prices_between_omnibus <- mixed(
+  rating ~ condition * effort_level + (1 | id),
+  data = prices_between_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(prices_between_omnibus)
+```
+
+The effort slope of each role, and their difference, come from the
+numeric-effort model.
+
+```{r prices-between-slopes}
+prices_between_trend <- mixed(
+  rating ~ condition * effort_num + (1 | id),
+  data = prices_between_data,
+  method = "S", control = evl_lmer_control, progress = FALSE
+)
+
+prices_between_slopes <- emtrends(
+  prices_between_trend, ~condition, var = "effort_num", infer = TRUE
+)
+prices_between_slopes
+
+prices_between_slope_diffs <- pairs(prices_between_slopes, infer = TRUE, reverse = TRUE)
+prices_between_slope_diffs
+```
+
+::: {.callout-note title="Key result"}
+```{r prices-between-key-result}
+#| echo: false
+#| results: asis
+report_slopes(prices_between_slopes, prices_between_slope_diffs,
+              labels = c(Buy = "Buyer", Sell = "Seller"))
+```
+:::
+
+The means are plotted with those of Experiment 6B (Both Experiments, below).
+
+## Time on Task
+
+The role-by-effort interaction should hold with performance time in the
+model.
+
+```{r prices-between-omnibus-time}
+prices_between_omnibus_time <- mixed(
+  rating ~ condition * effort_level + effort_time + (1 | id),
+  data = prices_between_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(prices_between_omnibus_time)
+```
+
+Time on task should track effort level but not the role participants were
+assigned to.
+
+```{r prices-between-duration}
+prices_between_duration <- mixed(
+  effort_time ~ condition * effort_level + (1 | id),
+  data = prices_between_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(prices_between_duration)
+```
+
+# Experiment 6B: Buying and Selling Prices, Within Subjects
+
+Participants stated both buying and selling prices (within subjects) for
+artworks collected at three effort levels, replicating Experiment 6A's
+questions with a within-subjects role manipulation. The design, sample size,
+and exclusions were preregistered: the analyzed sample excludes participants
+who failed an attention check (the in-task check, or the role-order question
+answered inconsistently with their actual order), whose summed clicking time
+exceeded the sample mean by more than 2.5 SD, or who did not complete the
+post-survey, and a skipped rating drops only its trial.
+
+```{r prices-within-data}
+prices_within_data <-
+  read_csv(here("experiments/prices_within/data/main.csv"), show_col_types = FALSE) %>%
+  set_effort_levels() %>%
+  mutate(
+    id = as.factor(id),
+    condition = factor(condition, levels = c("Buyer", "Seller"))
+  )
+
+n_prices_within <- n_distinct(prices_within_data$id)
+```
+
+The analyzed sample comprises `r n_prices_within` participants.
+
+```{r prices-within-sample}
+prices_within_data %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarize(
+    n = n_distinct(id),
+    mean_age = mean(age), sd_age = sd(age),
+    n_male = n_distinct(id[gender == "Male"]),
+    n_female = n_distinct(id[gender == "Female"]),
+    n_other = n_distinct(id[gender == "Other"])
+  )
+```
+
+## Main Analysis
+
+One factorial model with role and effort level as within-subjects fixed effects
+and a random intercept per participant carries the effort-by-role question in
+its interaction, and the numeric-effort model gives the slope of each role and
+their difference.
+
+```{r prices-within-omnibus}
+prices_within_omnibus <- mixed(
+  rating ~ effort_level * condition + (1 | id),
+  data = prices_within_data,
+  method = "S", control = evl_lmer_control
+)
+
+nice(prices_within_omnibus)
+```
+
+```{r prices-within-slopes}
+prices_within_trend <- mixed(
+  rating ~ effort_num * condition + (1 | id),
+  data = prices_within_data,
+  method = "S", control = evl_lmer_control, progress = FALSE
+)
+
+prices_within_slopes <- emtrends(
+  prices_within_trend, ~condition, var = "effort_num", infer = TRUE
+)
+prices_within_slopes
+
+prices_within_slope_diffs <- pairs(prices_within_slopes, infer = TRUE, reverse = TRUE)
+prices_within_slope_diffs
+```
+
+::: {.callout-note title="Key result"}
+```{r prices-within-key-result}
+#| echo: false
+#| results: asis
+report_slopes(prices_within_slopes, prices_within_slope_diffs)
+```
+:::
+
+## Rating Profiles
+
+Each participant's mean price at high versus low effort classifies them as
+increasing or decreasing, separately as buyer and as seller.
+
+```{r prices-within-profiles}
+prices_within_profiles <- derive_effort_profiles(prices_within_data)
+
+summarize_effort_profiles(prices_within_profiles)
+```
+
+## Both Experiments
+
+Experiments 6A and 6B share one figure, one panel per experiment, each on its
+own price scale: Experiment 6A's stated prices (\$0.10–\$1.00) on the left and
+Experiment 6B's 1–5 ratings (\$100–\$500) on the right. Each panel keeps the
+means and intervals of its own section: raw means for Experiment 6A and model
+estimates for Experiment 6B.
+
+```{r prices-combined-plot}
+prices_within_means <- as.data.frame(
+  emmeans(prices_within_omnibus, ~ effort_level * condition)
+)
+
+prices_combined_means <-
+  bind_rows(
+    prices_between_data %>%
+      group_by(condition, effort_level) %>%
+      summarize(mean_cl_normal(rating), .groups = "drop") %>%
+      transmute(
+        experiment = "Experiment 6A", effort_level,
+        role = recode(as.character(condition), "Buy" = "Buyer", "Sell" = "Seller"),
+        emmean = y, lower.CL = ymin, upper.CL = ymax
+      ),
+    prices_within_means %>%
+      transmute(
+        experiment = "Experiment 6B", effort_level, role = as.character(condition),
+        emmean, lower.CL, upper.CL
+      )
+  )
+
+prices_combined_plot <-
+  prices_combined_means %>%
+  ggplot(aes(x = effort_level, y = emmean, group = role, colour = role)) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.15, linewidth = 0.3) +
+  geom_line() +
+  geom_point(aes(fill = role), shape = 21) +
+  scale_evl(name = NULL) +
+  scale_fill_manual(
+    values = c(Buyer = evl_colours[["Open"]], Seller = evl_colours[["Seller"]]), name = NULL
+  ) +
+  facet_wrap(~experiment, scales = "free_y") +
+  ggh4x::facetted_pos_scales(y = list(
+    experiment == "Experiment 6A" ~ scale_y_continuous(
+      limits = c(0.10, 1.00), breaks = c(0.10, 0.25, 0.45, 0.75, 1.00),
+      labels = scales::label_dollar(accuracy = 0.01), oob = scales::oob_keep
+    ),
+    experiment == "Experiment 6B" ~ scale_y_continuous(
+      limits = c(1, 5), breaks = 1:5, labels = label_price, oob = scales::oob_keep
+    )
+  )) +
+  labs(
+    title = "Buying and Selling Prices",
+    subtitle = "Experiments 6A and 6B",
+    x = "Effort Level", y = "Mean Price"
+  ) +
+  theme_evl(legend = "bottom")
+
+save_figure(prices_combined_plot, "prices_combined_ratings")
+```
+
+# Summary
+
+Two quantities carry every experiment's result: the linear effort slope of each
+judgment and the difference between the slopes of the two judgments, Δb, taken
+as the judgment expected to rise with effort (price, or the selling price) minus
+the judgment expected to fall (liking, or the buying price). The table gathers
+them with each sample's size, including Experiment S7, the post-effort target
+reveal, and the pooled cognitive sample of Experiment 5, which is also listed by
+task and, for serial subtraction, at higher task load (+1 SD), where its
+dissociation appears. The summary file also carries each slope as a
+standardized effect, d, which the overview compares across experiments; the
+task-load row is scaled by the rating SD of its task, like the task's own row.
+
+```{r summary}
+main_summary <- bind_rows(
+  key_result("Experiment 1", "Experiment 1: Laboratory Stepping", n_stepping,
+             stepping_slopes, stepping_slope_diffs, "Liking", "Value",
+             model = stepping_trend),
+  key_result("Experiment 2", "Experiment 2: Observed Effort", n_observed,
+             observed_slopes, observed_slope_diffs, "Liking", "Value",
+             model = observed_trend),
+  key_result("Experiment 3", "Experiment 3: Within-Subjects Clicking", n_clicking_within,
+             clicking_within_slopes, clicking_within_slope_diffs, "Liking", "Value",
+             model = clicking_within_trend),
+  key_result("Experiment 4", "Experiment 4: Effort-Contingent Reveal", n_reveal,
+             reveal_slopes, reveal_slope_diffs, "Liking", "Value",
+             model = reveal_trend),
+  key_result("Experiment S7", "Experiment S7: Post-Effort Target Reveal", n_reveal_endpoint,
+             reveal_endpoint_slopes, reveal_endpoint_slope_diffs, "Liking", "Value",
+             model = reveal_endpoint_trend),
+  key_result("Experiment 5", "Experiment 5: Cognitive Effort", n_cogletters + n_subtractn,
+             cognitive_slopes, cognitive_slope_diffs, "Liking", "Value",
+             model = cognitive_trend),
+  key_result("Experiment 5", "Experiment 5: Letter Transposition", n_cogletters,
+             cogletters_slopes, cogletters_slope_diffs, "Liking", "Value",
+             model = cogletters_trend, subset = "Letter transposition"),
+  key_result("Experiment 5", "Experiment 5: Serial Subtraction", n_subtractn,
+             subtractn_slopes, subtractn_slope_diffs, "Liking", "Value",
+             model = subtractn_trend, subset = "Serial subtraction"),
+  key_result("Experiment 5", "Experiment 5: Serial Subtraction, Moderation by Task Load",
+             n_subtractn, subtractn_high_load_slopes, subtractn_high_load_slope_diffs,
+             "Liking", "Value", model = subtractn_trend,
+             subset = "Serial subtraction, higher task load (+1 SD)"),
+  key_result("Experiment 6A", "Experiment 6A: Buying and Selling Prices, Between Subjects",
+             n_prices_between, prices_between_slopes, prices_between_slope_diffs, "Buy", "Sell",
+             model = prices_between_trend),
+  key_result("Experiment 6B", "Experiment 6B: Buying and Selling Prices, Within Subjects",
+             n_prices_within, prices_within_slopes, prices_within_slope_diffs, "Buyer", "Seller",
+             model = prices_within_trend)
+)
+
+main_summary %>%
+  transmute(
+    study, subset, n,
+    falls = sprintf("%s: %.2f [%.2f, %.2f]", falls, falls_b, falls_lower, falls_upper),
+    rises = sprintf("%s: %.2f [%.2f, %.2f]", rises, rises_b, rises_lower, rises_upper),
+    difference = sprintf("%.2f [%.2f, %.2f], t(%.0f) = %.2f",
+                         delta, delta_lower, delta_upper, delta_df, delta_t)
+  )
+
+write_csv(main_summary, here("output/key_results_main.csv"))
+```

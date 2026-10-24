@@ -1,0 +1,9 @@
+TASK INSTRUCTIONS
+
+This experiment offers you an opportunity to access a number of calligraphy art pieces. Each calligraphy is associated with a different level of effort, i.e., number of steps needed to access it.
+
+When a calligraphy is presented, access it by performing the effort with the step simulator under your desk. When the number of steps needed to access a given calligraphy is reached, you will proceed to the next one. Try performing the steps as quickly as you can. Note that each calligraphy will be presented on the screen for a limited amount of time.
+
+When the required number of steps is reached, you become a buyer of that particular piece. Next, you will be asked to indicate the maximum price for which you are willing to buy the current art piece from us. Your offer will be between 10 cents and $1. Use the [F] and [K] keys to navigate the scale presented and confirm your choice by pressing [SPACE]. There will be a 15 second rest period following the effort associated with each art piece.
+  
+At the end of the experiment, the computer will randomly select one of the art pieces you accessed. Next the computer will compare your buying offer with our selling price. Our selling price for any art piece is determined randomly between 10 cents and $1. If your buying offer is higher than our price, you will get a nice large printout of that particular art piece in exchange for the amount you offered. If your buying offer is lower than our selling price, you will keep the money you offered, but forfeit the printout of the art piece. Therefore it is in your best interest to indicate an honest buying price for each art piece. 

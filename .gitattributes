@@ -1,0 +1,21 @@
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.JPG binary
+*.jpeg binary
+*.tif binary
+*.tiff binary
+*.mp4 binary
+*.woff binary
+*.woff2 binary
+*.xlsx binary
+*.docx binary
+*.pdf binary
+
+# Third-party libraries shipped with the jsPsych tasks
+experiments/*/jspsych/** linguist-vendored
+experiments/*/lib/** linguist-vendored
+
+# The analysis notebooks are R; count them with the R scripts
+analysis/*.qmd linguist-language=R

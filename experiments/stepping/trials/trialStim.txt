@@ -1,0 +1,19 @@
+trialNum	effortLevelTrain	effortRepTrain	stimTrain	effortLevelProc	effortRepProc	stimProc
+1	low	30	training1	low	30	Georgian1
+2	medium	100	training2	medium	100	Georgian2
+3	high	270	training3	high	270	Georgian3
+				low	30	Georgian4
+				high	270	Georgian5
+				medium	100	Georgian6
+				high	270	Georgian7
+				medium	100	Georgian8
+				low	30	Georgian9
+				medium	100	Konkani1
+				low	30	Konkani2
+				high	270	Konkani3
+				medium	100	Konkani4
+				high	270	Konkani5
+				low	30	Konkani6
+				high	270	Konkani7
+				low	30	Konkani8
+				medium	100	Konkani9

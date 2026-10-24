@@ -1,0 +1,39 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - main.qmd
+    - supplementary.qmd
+    - index.qmd
+
+website:
+  title: "Effort–Value Dissociation"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Overview
+      - href: main.qmd
+        text: Main Experiments
+      - href: supplementary.qmd
+        text: Supplementary Studies
+    right:
+      - text: OSF
+        href: https://osf.io/5rjds/
+      - icon: github
+        href: https://github.com/pmarcowski/effort-value-liking
+  search: true
+
+knitr:
+  opts_chunk:
+    message: false
+
+format:
+  html:
+    theme: [cosmo, evl.scss]
+    toc: true
+    toc-depth: 3
+    toc-expand: true
+    number-sections: false
+    code-fold: true
+    code-tools: true
+    df-print: paged

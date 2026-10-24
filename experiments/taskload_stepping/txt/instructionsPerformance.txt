@@ -1,0 +1,7 @@
+TASK INSTRUCTIONS
+
+In this study you will be asked to perform a series of tasks that involve performing different number of steps.
+
+When prompted, start performing the steps with the step simulator under your desk. When a given number of steps is reached, you will proceed to the next task. Try performing the steps as quickly as you can.
+
+After each task, use the scales presented on the screen to rate the different characteristics of the task that you just performed. Use the [F] and [K] keys to navigate the scale and confirm your choice by pressing [SPACE]. There will be a 15 second rest period following each task.

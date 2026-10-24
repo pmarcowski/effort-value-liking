@@ -1,0 +1,267 @@
+---
+title: "Effort–Value Dissociation"
+subtitle: "Liking versus price in consumer valuation"
+toc: false
+code-tools: false
+execute:
+  echo: false
+---
+
+```{r setup}
+#| include: false
+library(tidyverse)
+library(here)
+
+here::i_am("analysis/index.qmd")
+source(here("R/functions.R"))
+
+summary_files <- here("output", c("key_results_main.csv", "key_results_supplementary.csv"))
+if (!all(file.exists(summary_files))) {
+  stop(
+    "The overview reads the summary tables that main.qmd and supplementary.qmd write; ",
+    "render those two first, or render the whole site with `quarto render analysis`."
+  )
+}
+results <- bind_rows(
+  read_csv(summary_files[1], show_col_types = FALSE),
+  read_csv(summary_files[2], show_col_types = FALSE)
+)
+
+judgment <- c(
+  Liking = "liking", Value = "price",
+  Buy = "buying", Buyer = "buying", Sell = "selling", Seller = "selling"
+)
+
+# Kind of experiment, in plot order: performed effort first, then the controls
+experiment_type <- c(
+  "Experiment 1" = "Physical effort", "Experiment 3" = "Physical effort",
+  "Experiment 4" = "Physical effort", "Experiment S5" = "Physical effort",
+  "Experiment S7" = "Physical effort", "Experiment 5" = "Cognitive effort",
+  "Experiment 6A" = "Buying and selling prices", "Experiment 6B" = "Buying and selling prices",
+  "Experiment 2" = "Observed effort", "Experiment S6" = "Waiting"
+)
+subset_label <- c(
+  "Letter transposition" = "Letter transposition",
+  "Serial subtraction" = "Serial subtraction",
+  "Serial subtraction, higher task load (+1 SD)" = "Serial subtraction, +1 SD load"
+)
+
+# One row per test; Experiment 5 also by task and at higher task load
+tests <- results %>%
+  filter(!is.na(delta)) %>%
+  mutate(
+    pair = paste(judgment[rises], "−", judgment[falls]),
+    group = if_else(str_detect(study, "^Experiment S"), "Supplementary", "Main experiment"),
+    group = factor(group, levels = c("Main experiment", "Supplementary")),
+    type = factor(experiment_type[study], levels = unique(experiment_type)),
+    label = case_when(
+      !is.na(subset) ~ subset_label[subset],
+      study == "Experiment 5" ~ "Experiment 5 (pooled)",
+      .default = study
+    )
+  ) %>%
+  arrange(type, !is.na(subset), str_rank(study, numeric = TRUE)) %>%
+  mutate(label = fct_rev(fct_inorder(label)))
+
+# Experiment types as section headers, each section as tall as its rows
+by_type <- facet_wrap(~type, ncol = 1, scales = "free_y")
+theme_sections <- function(row_height) {
+  theme(
+    panel.heights = unit(count(tests, type)$n * row_height, "mm"),
+    panel.spacing.y = unit(2, "mm"),
+    strip.text = element_text(face = "bold", hjust = 0)
+  )
+}
+
+dissociation <- filter(tests, pair == "price − liking", is.na(subset))
+n_tests <- nrow(dissociation)
+n_positive <- sum(dissociation$delta_lower > 0)
+exceptions <- as.character(dissociation$study[dissociation$delta_lower <= 0])
+exception_note <- if (length(exceptions) == 0) {
+  ""
+} else if (length(exceptions) == 1) {
+  paste0("; the exception is ", exceptions)
+} else {
+  paste0("; the exceptions are ", knitr::combine_words(exceptions))
+}
+prices_positive <- all(tests$delta_lower[tests$pair == "selling − buying"] > 0)
+
+studies <- tribble(
+  ~study, ~effort, ~design, ~anchor,
+  "Experiment 1", "Laboratory stepping",
+  "Liking, wanting, or price; between subjects",
+  "main.html#experiment-1-laboratory-stepping",
+  "Experiment 2", "Observed stepping (video)",
+  "Liking or price; between subjects",
+  "main.html#experiment-2-observed-effort",
+  "Experiment 3", "Online clicking",
+  "Liking and price; within subjects",
+  "main.html#experiment-3-within-subjects-clicking",
+  "Experiment 4", "Clicking with a progressive reveal of the object",
+  "Liking or price; between subjects",
+  "main.html#experiment-4-effort-contingent-reveal",
+  "Experiment 5", "Cognitive: letter transposition or serial subtraction",
+  "Liking or price; between subjects",
+  "main.html#experiment-5-cognitive-effort",
+  "Experiment 6A", "Laboratory stepping",
+  "Buying or selling prices; between subjects",
+  "main.html#experiment-6a-buying-and-selling-prices-between-subjects",
+  "Experiment 6B", "Online clicking",
+  "Buying and selling prices; within subjects",
+  "main.html#experiment-6b-buying-and-selling-prices-within-subjects",
+  "Experiment S1", "Laboratory stepping",
+  "NASA-TLX after every trial",
+  "supplementary.html#experiment-s1-laboratory-stepping",
+  "Experiment S2", "Online clicking",
+  "NASA-TLX after every trial",
+  "supplementary.html#experiment-s2-online-clicking",
+  "Experiment S3", "None",
+  "Price and liking with counterbalanced order",
+  "supplementary.html#experiment-s3-price-and-liking-at-baseline",
+  "Experiment S4", "None",
+  "Liking under small or large explicit prices",
+  "supplementary.html#experiment-s4-explicit-price-and-liking",
+  "Experiment S5", "Foraging game",
+  "Liking or price; prior experience between subjects",
+  "supplementary.html#experiment-s5-foraging-experience",
+  "Experiment S6", "Passive wait of 10, 20, or 40 s",
+  "Liking or price; object preview between subjects",
+  "supplementary.html#experiment-s6-waiting",
+  "Experiment S7", "Clicking with a post-effort reveal of the object",
+  "Liking or price; between subjects",
+  "main.html#experiment-s7-post-effort-target-reveal",
+  "Performed vs observed effort", "Stepping, performed or observed",
+  "Experiments 1 and 2 pooled",
+  "supplementary.html#performed-vs-observed-effort"
+)
+```
+
+Working hard for an object lowers how much people like it and raises the price
+they put on it. We tested this dissociation with performed, observed, and
+cognitive effort and with waiting, in the laboratory and online, between and
+within subjects. Each experiment fits one factorial model, estimates the linear
+effort slope of each judgment, and tests the difference between the two slopes,
+Δb, which is the dissociation: a positive Δb means that price rose with effort
+more than liking did. The [Main Experiments](main.qmd) page holds Experiments 1
+to 6B, with Experiment S7 beside Experiment 4, and the
+[Supplementary Studies](supplementary.qmd) page holds Experiments S1 to S6 and
+the analyses that pool across experiments. The notebooks accompany the paper;
+the code and the prepared data are in the
+[GitHub repository](https://github.com/pmarcowski/effort-value-liking).
+
+## Key Results
+
+In `r n_positive` of the `r n_tests` tests of the liking–price dissociation,
+the 95% confidence interval of Δb lies above zero`r exception_note`.
+Experiments 6A and 6B carry the same asymmetry within monetary judgments:
+selling prices rise with effort more steeply than buying prices`r if (prices_positive) ", with both intervals above zero"`.
+
+```{r key-results-plot}
+#| fig-cap: "The slope difference (Δb: price minus liking; selling minus buying in Experiments 6A and 6B) with its 95% confidence interval in every study that tests the dissociation, grouped by kind of experiment. Experiment 5 is shown pooled, by task, and for serial subtraction at higher task load (+1 SD of the NASA-TLX), where its dissociation appears. Filled points are the main experiments; open points are the supplementary studies."
+key_results_plot <- ggplot(tests, aes(x = delta, y = label)) +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey55", linewidth = 0.3) +
+  geom_errorbar(aes(xmin = delta_lower, xmax = delta_upper), width = 0.3, linewidth = 0.3) +
+  geom_point(aes(fill = group), shape = 21, colour = "black") +
+  scale_fill_manual(
+    values = c("Main experiment" = evl_colours[["Teal"]], "Supplementary" = "white"),
+    name = NULL
+  ) +
+  by_type +
+  labs(x = "Slope Difference (Δb)", y = NULL) +
+  theme_evl(legend = "bottom", panel = 70) +
+  theme_sections(row_height = 5.5)
+
+save_figure(key_results_plot, "slope_differences_by_experiment")
+```
+
+## Effect Sizes
+
+Slopes are in each experiment's own rating units, so for comparison across
+experiments each slope is standardized as d: the change from low to high effort
+that the slope implies (2b), in units of the total rating SD of the
+experiment's trend model (participant and residual variance). Intervals scale
+the slope's 95% confidence interval and treat the SD as known. The comparison
+covers every experiment that set effort, or waiting in its place, against
+judgment; the validation samples (Experiments S1 and S2) and the baseline
+controls (Experiments S3 and S4) do not. Experiment 5 appears pooled, by task,
+and for serial subtraction at higher task load (+1 SD), whose slopes are scaled
+by the rating SD of that task. The two figures are Figures S16 and S17 of the
+Supplemental Material.
+
+```{r effect-sizes-plot}
+#| fig-cap: "Standardized effect of effort (d, low to high effort) on each judgment, with 95% confidence intervals, grouped by kind of experiment. Open points mark the judgment expected to fall with effort (liking, or the buying price in Experiments 6A and 6B) and filled points the judgment expected to rise (price, or the selling price). Experiment 5 is shown pooled, by task, and for serial subtraction at higher task load (+1 SD of the NASA-TLX)."
+# Colour names the kind of judgment (buying and selling prices are prices) and
+# fill its expected direction: open falls with effort, filled rises
+effect_colours <- c(Liking = evl_colours[["Liking"]], Price = evl_colours[["Price"]])
+effect_fills <- c(Liking = "white", Price = evl_colours[["Price"]], Open = "white")
+
+effect_dodge <- position_dodge(width = 0.55, orientation = "y")
+effect_sizes_plot <-
+  bind_rows(
+    transmute(tests, type, label, judgment = falls, role = "Falls",
+              d = d_falls, lower = d_falls_lower, upper = d_falls_upper),
+    transmute(tests, type, label, judgment = rises, role = "Rises",
+              d = d_rises, lower = d_rises_lower, upper = d_rises_upper)
+  ) %>%
+  mutate(
+    kind = if_else(judgment == "Liking", "Liking", "Price"),
+    fill = if_else(role == "Falls" & kind == "Price", "Open", kind)
+  ) %>%
+  ggplot(aes(x = d, y = label, colour = kind, fill = fill, group = role)) +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey55", linewidth = 0.3) +
+  geom_errorbar(aes(xmin = lower, xmax = upper), width = 0.3, linewidth = 0.4,
+                position = effect_dodge) +
+  geom_point(shape = 21, position = effect_dodge) +
+  scale_colour_manual(values = effect_colours, name = NULL) +
+  scale_fill_manual(values = effect_fills, breaks = names(effect_colours), name = NULL) +
+  scale_x_continuous(breaks = seq(-0.5, 1.5, 0.5)) +
+  by_type +
+  labs(x = "Standardized Effect of Effort (d)", y = NULL) +
+  theme_evl(legend = "bottom", panel = 70) +
+  theme_sections(row_height = 6.5)
+
+save_figure(effect_sizes_plot, "effect_sizes_by_experiment")
+```
+
+```{r effect-sizes-table}
+tests %>%
+  transmute(
+    Study = if_else(
+      is.na(subset), as.character(label),
+      paste0(study, ", ", sub("^(.)", "\\L\\1", label, perl = TRUE))
+    ),
+    Type = type,
+    `d, liking or buying [95% CI]` =
+      sprintf("%.2f [%.2f, %.2f]", d_falls, d_falls_lower, d_falls_upper),
+    `d, price or selling [95% CI]` =
+      sprintf("%.2f [%.2f, %.2f]", d_rises, d_rises_lower, d_rises_upper),
+    `Δd [95% CI]` = sprintf("%.2f [%.2f, %.2f]", d_delta, d_delta_lower, d_delta_upper)
+  ) %>%
+  knitr::kable(align = "lllll")
+```
+
+## The Studies
+
+Δb is the price slope minus the liking slope, or the selling slope minus the
+buying slope in Experiments 6A and 6B; each link opens the study's section of
+its notebook.
+
+::: {.studies}
+```{r studies-table}
+studies %>%
+  left_join(
+    select(filter(results, is.na(subset)), study, n, delta, delta_lower, delta_upper),
+    by = "study"
+  ) %>%
+  transmute(
+    Study = sprintf("[%s](%s)", study, anchor),
+    Effort = effort,
+    Design = design,
+    N = if_else(is.na(n), "—", as.character(n)),
+    `Δb [95% CI]` = if_else(
+      is.na(delta), "—", sprintf("%.2f [%.2f, %.2f]", delta, delta_lower, delta_upper)
+    )
+  ) %>%
+  knitr::kable(align = "lllrl")
+```
+:::
