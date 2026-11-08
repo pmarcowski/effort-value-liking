@@ -149,7 +149,7 @@ the analyses that pool across experiments. The notebooks accompany the paper;
 the code and the prepared data are in the
 [GitHub repository](https://github.com/pmarcowski/effort-value-liking).
 
-## Key Results
+## Summary
 
 In `r n_positive` of the `r n_tests` tests of the liking–price dissociation,
 the 95% confidence interval of Δb lies above zero`r exception_note`.

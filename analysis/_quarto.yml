@@ -10,8 +10,6 @@ website:
   title: "Effort–Value Dissociation"
   navbar:
     left:
-      - href: index.qmd
-        text: Overview
       - href: main.qmd
         text: Main Experiments
       - href: supplementary.qmd
@@ -29,7 +27,8 @@ knitr:
 
 format:
   html:
-    theme: [cosmo, evl.scss]
+    date: "2026-10-24"
+    theme: [default, evl.scss]
     toc: true
     toc-depth: 3
     toc-expand: true
